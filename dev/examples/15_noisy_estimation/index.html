@@ -47,25 +47,25 @@ timesteps = 0.0:0.1:END_TIME
 true_sol = solve(true_prob, Rodas5(); saveat=timesteps)
 V_data_clean = true_sol[true_sys.true_neuron.cap.v]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1001-element Vector{Float64}:
  -65.0
- -64.22591619267945
- -63.49089980908907
+ -64.22591619267946
+ -63.49089980908908
  -62.78551666686095
  -62.10164954963334
- -61.43161497634571
- -60.76761061302958
- -60.101273291048805
- -59.42325708251769
- -58.72254444914414
+ -61.43161497634572
+ -60.767610613029596
+ -60.10127329104882
+ -59.423257082517694
+ -58.722544449144145
    ⋮
-  10.031725507100486
-   4.687598428801583
-  -0.574377907635427
-  -5.700204926115931
- -10.665492866753324
- -15.468675712768404
- -20.12347941188003
- -24.658477531706822
- -29.127817545964085</code></pre><p>Add 3 mV Gaussian noise to the data</p><pre><code class="language-julia hljs">Random.seed!(42)
+  10.031725507089753
+   4.687598428791057
+  -0.5743779076458245
+  -5.700204926125791
+ -10.665492866763016
+ -15.4686757127778
+ -20.12347941188918
+ -24.65847753171579
+ -29.127817545972867</code></pre><p>Add 3 mV Gaussian noise to the data</p><pre><code class="language-julia hljs">Random.seed!(42)
 noise_level = 3.0
 V_data_noisy = V_data_clean .+ noise_level .* randn(length(V_data_clean))
 itp_V = LinearInterpolation(V_data_noisy, timesteps)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">LinearInterpolation with 1001 points
@@ -108,7 +108,7 @@ setter = setp(fit_prob, [gNa_sym, gK_sym, gleak_sym])
 diffcache = DiffCache(copy(canonicalize(Tunable(), parameter_values(fit_prob))[1]))
 
 v_getter = getu(fit_prob, fit_sys.fit_neuron.cap.v)
-i_pem_getter = getu(fit_prob, fit_sys.fit_neuron.pem_ch.i)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">SymbolicIndexingInterface.TimeDependentObservedFunction{SymbolicIndexingInterface.ContinuousTimeseries, ModelingToolkitBase.GeneratedFunctionWrapper{(2, 3, true), RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:__mtk_arg_1, :___mtkparameters___, :__argₛᵧₘ1249670312406203976), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0x3a1ff8b4, 0x5bf883a1, 0x03411996, 0xa2b92212, 0x222202de), Nothing}, RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:x1, :x2, :x3, :x4), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0xb896e553, 0xa118fcf5, 0xbfeb9719, 0xa096e58a, 0x357542a4), Nothing}}, true}(SymbolicIndexingInterface.ContinuousTimeseries(), ModelingToolkitBase.GeneratedFunctionWrapper{(2, 3, true), RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:__mtk_arg_1, :___mtkparameters___, :__argₛᵧₘ1249670312406203976), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0x3a1ff8b4, 0x5bf883a1, 0x03411996, 0xa2b92212, 0x222202de), Nothing}, RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:x1, :x2, :x3, :x4), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0xb896e553, 0xa118fcf5, 0xbfeb9719, 0xa096e58a, 0x357542a4), Nothing}}(RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:__mtk_arg_1, :___mtkparameters___, :__argₛᵧₘ1249670312406203976), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0x3a1ff8b4, 0x5bf883a1, 0x03411996, 0xa2b92212, 0x222202de), Nothing}(nothing), RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:x1, :x2, :x3, :x4), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0xb896e553, 0xa118fcf5, 0xbfeb9719, 0xa096e58a, 0x357542a4), Nothing}(nothing)))</code></pre><h2 id="3.-Define-Loss-Function-and-Optimize"><a class="docs-heading-anchor" href="#3.-Define-Loss-Function-and-Optimize">3. Define Loss Function &amp; Optimize</a><a id="3.-Define-Loss-Function-and-Optimize-1"></a><a class="docs-heading-anchor-permalink" href="#3.-Define-Loss-Function-and-Optimize" title="Permalink"></a></h2><p>We calculate the loss based on the <em>PEM observer current</em>. Instead of minimizing the tracking error (which the controller achieves regardless of parameters), we minimize the effort of the controller. This forces the optimizer to find the underlying parameters that naturally generate the data.</p><h2 id="3.-Define-Loss-Function-and-Optimize-2"><a class="docs-heading-anchor" href="#3.-Define-Loss-Function-and-Optimize-2">3. Define Loss Function &amp; Optimize</a><a class="docs-heading-anchor-permalink" href="#3.-Define-Loss-Function-and-Optimize-2" title="Permalink"></a></h2><p>We calculate a multi-objective loss based on both the tracking error (voltage) and the observer effort (current). This forces the system to track the data while penalizing the controller from &quot;cheating&quot; to force bad parameters to fit.</p><pre><code class="language-julia hljs">function loss(x, p)
+i_pem_getter = getu(fit_prob, fit_sys.fit_neuron.pem_ch.i)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">SymbolicIndexingInterface.TimeDependentObservedFunction{SymbolicIndexingInterface.ContinuousTimeseries, ModelingToolkitBase.GeneratedFunctionWrapper{Tuple{2, 3, true}, RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:__mtk_arg_1, :___mtkparameters___, :__argₛᵧₘ1249670312406203976), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0xe2969c25, 0xf1bea75d, 0xd81461b5, 0x899298c5, 0xc90633a4), Nothing}, RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:x1, :x2, :x3, :x4), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0xb896e553, 0xa118fcf5, 0xbfeb9719, 0xa096e58a, 0x357542a4), Nothing}}, true}(SymbolicIndexingInterface.ContinuousTimeseries(), ModelingToolkitBase.GeneratedFunctionWrapper{Tuple{2, 3, true}, RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:__mtk_arg_1, :___mtkparameters___, :__argₛᵧₘ1249670312406203976), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0xe2969c25, 0xf1bea75d, 0xd81461b5, 0x899298c5, 0xc90633a4), Nothing}, RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:x1, :x2, :x3, :x4), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0xb896e553, 0xa118fcf5, 0xbfeb9719, 0xa096e58a, 0x357542a4), Nothing}}(RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:__mtk_arg_1, :___mtkparameters___, :__argₛᵧₘ1249670312406203976), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0xe2969c25, 0xf1bea75d, 0xd81461b5, 0x899298c5, 0xc90633a4), Nothing}(nothing), RuntimeGeneratedFunctions.RuntimeGeneratedFunction{(:x1, :x2, :x3, :x4), ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, ModelingToolkitBase.var&quot;#_RGF_ModTag&quot;, (0xb896e553, 0xa118fcf5, 0xbfeb9719, 0xa096e58a, 0x357542a4), Nothing}(nothing)))</code></pre><h2 id="3.-Define-Loss-Function-and-Optimize"><a class="docs-heading-anchor" href="#3.-Define-Loss-Function-and-Optimize">3. Define Loss Function &amp; Optimize</a><a id="3.-Define-Loss-Function-and-Optimize-1"></a><a class="docs-heading-anchor-permalink" href="#3.-Define-Loss-Function-and-Optimize" title="Permalink"></a></h2><p>We calculate the loss based on the <em>PEM observer current</em>. Instead of minimizing the tracking error (which the controller achieves regardless of parameters), we minimize the effort of the controller. This forces the optimizer to find the underlying parameters that naturally generate the data.</p><h2 id="3.-Define-Loss-Function-and-Optimize-2"><a class="docs-heading-anchor" href="#3.-Define-Loss-Function-and-Optimize-2">3. Define Loss Function &amp; Optimize</a><a class="docs-heading-anchor-permalink" href="#3.-Define-Loss-Function-and-Optimize-2" title="Permalink"></a></h2><p>We calculate a multi-objective loss based on both the tracking error (voltage) and the observer effort (current). This forces the system to track the data while penalizing the controller from &quot;cheating&quot; to force bad parameters to fit.</p><pre><code class="language-julia hljs">function loss(x, p)
     prob, timesteps, V_data_noisy, setter, diffcache, v_getter, i_pem_getter = p
 
     ps = parameter_values(prob)
@@ -143,9 +143,9 @@ u0: 3-element Vector{Float64}:
  100.0
   10.3</code></pre><h2 id="4.-Optimize-and-Plot"><a class="docs-heading-anchor" href="#4.-Optimize-and-Plot">4. Optimize and Plot</a><a id="4.-Optimize-and-Plot-1"></a><a class="docs-heading-anchor-permalink" href="#4.-Optimize-and-Plot" title="Permalink"></a></h2><p>To avoid recompiling new systems for the free-running simulations, we simply reuse the compiled <code>fit_sys</code> and set the PEM controller gain (K) to 0.0 to disable the observer.</p><pre><code class="language-julia hljs">println(&quot;Starting optimization...&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Starting optimization...</code></pre><p>(Don&#39;t forget to add lb and ub to optprob in Section 3 if you haven&#39;t already!)</p><pre><code class="language-julia hljs">res = solve(optprob, BFGS(); maxiters=1000)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">retcode: Success
 u: 3-element Vector{Float64}:
- 111.90988884423828
-  32.66943036485036
-   0.42851160234779084</code></pre><p>Assuming the PEM channel has a parameter named <code>K</code>. (If the symbol name is different in your package, just adjust this line)</p><pre><code class="language-julia hljs">K_sym = fit_sys.fit_neuron.pem_ch.K
+ 113.16727777251688
+  33.004973853658065
+   0.4402750975226786</code></pre><p>Assuming the PEM channel has a parameter named <code>K</code>. (If the symbol name is different in your package, just adjust this line)</p><pre><code class="language-julia hljs">K_sym = fit_sys.fit_neuron.pem_ch.K
 K_setter = setp(fit_prob, [K_sym])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">SymbolicIndexingInterface.ParameterHookWrapper{SymbolicIndexingInterface.MultipleSetters{Vector{SymbolicIndexingInterface.SetParameterIndex{ModelingToolkitBase.ParameterIndex{SciMLStructures.Tunable, Int64}}}}, Vector{Symbolics.Num}}(SymbolicIndexingInterface.MultipleSetters{Vector{SymbolicIndexingInterface.SetParameterIndex{ModelingToolkitBase.ParameterIndex{SciMLStructures.Tunable, Int64}}}}(SymbolicIndexingInterface.SetParameterIndex{ModelingToolkitBase.ParameterIndex{SciMLStructures.Tunable, Int64}}[SymbolicIndexingInterface.SetParameterIndex{ModelingToolkitBase.ParameterIndex{SciMLStructures.Tunable, Int64}}(ModelingToolkitBase.ParameterIndex{SciMLStructures.Tunable, Int64}(SciMLStructures.Tunable(), 8, false))]), Symbolics.Num[fit_neuron₊pem_ch₊K])</code></pre><p>–- 1. Simulate with recovered parameters (WITH PEM) to get observer current –-</p><pre><code class="language-julia hljs">opt_ps = parameter_values(fit_prob)
 opt_buffer = copy(canonicalize(Tunable(), opt_ps)[1])
 opt_ps = replace(Tunable(), opt_ps, opt_buffer)
@@ -176,25 +176,25 @@ t: 1001-element Vector{Float64}:
  100.0
 u: 1001-element Vector{Vector{Float64}}:
  [0.052, 0.596, 0.317, -65.0]
- [0.05330244559959904, 0.595825686548114, 0.31713191402062274, -64.10476952342039]
- [0.056187468501956155, 0.5952636430431326, 0.3175248151921806, -63.28005218645308]
- [0.05969852979595584, 0.5944048215730751, 0.31811345637045674, -62.65541928116998]
- [0.06382549812696606, 0.5932292941434281, 0.31890745436845924, -61.74056315117389]
- [0.06932833292844251, 0.5915621868660677, 0.32001580918581574, -60.69550037302761]
- [0.07527186781295546, 0.5895113338123517, 0.32136159703838074, -60.190599930044066]
- [0.0800609109739886, 0.5873743794332567, 0.32275252236416313, -60.1548096555273]
- [0.08332471078562532, 0.5852914187717462, 0.32409999374668935, -60.29471968270753]
- [0.08578614536033591, 0.5832196795670656, 0.32543145667454976, -59.83820085993253]
+ [0.05331216439387372, 0.5958239223128492, 0.31713311174661074, -64.09691276427284]
+ [0.05621773635178602, 0.5952573720112642, 0.317529033157161, -63.26733232815712]
+ [0.05975305175826559, 0.5943921259309658, 0.31812192082543556, -62.63955603320987]
+ [0.06390906682033305, 0.5932079572503919, 0.31892154181157795, -61.72081610499736]
+ [0.06944918826250716, 0.5915291086559609, 0.3200373591177592, -60.670938209501436]
+ [0.07543993469496087, 0.5894628513997942, 0.32139274361881565, -60.15964379408399]
+ [0.08026745094376828, 0.5873100710534978, 0.32279342612632383, -60.12367748952423]
+ [0.08356008562513449, 0.5852116090952534, 0.3241504102800607, -60.26107927744527]
+ [0.08607611949532325, 0.5831185440460898, 0.3254949967216524, -59.794466994119354]
  ⋮
- [0.9875178444949018, 0.14313656631229432, 0.6857502026974883, 10.918220957226962]
- [0.9868578577242141, 0.12983614390348205, 0.7016633004403162, 5.503997490686594]
- [0.9839828510597778, 0.11794197707123187, 0.7147960747213565, 0.24359438578610787]
- [0.9789576964613065, 0.10737186213945475, 0.7255056481368877, -4.783734123463264]
- [0.9715053978216813, 0.09806393795004573, 0.7340898802006416, -9.623333867094068]
- [0.9607902086057013, 0.0899990165081243, 0.7407240227326002, -14.830807993491192]
- [0.9457147710904126, 0.0831854324956433, 0.7455513196202856, -19.302139291857802]
- [0.9261981599944304, 0.07754269649362605, 0.7489092511898602, -23.757826390452667]
- [0.900071717943995, 0.07312849844555668, 0.7508123863468453, -28.295412612372527]</code></pre><p>–- 2. Pure simulation for INITIAL GUESS (No PEM) –-</p><pre><code class="language-julia hljs">init_ps = parameter_values(fit_prob)
+ [0.9875021260635225, 0.14343376739595878, 0.6854610088512542, 10.98743996665061]
+ [0.9868767406529534, 0.1301036322541978, 0.7014170645683921, 5.576905719870741]
+ [0.9840338945602634, 0.11818186101721673, 0.7145889387932626, 0.3181570630878811]
+ [0.9790441624286019, 0.10758586460127327, 0.7253338119894982, -4.709968218373437]
+ [0.9716335228761126, 0.09825349968010146, 0.7339495195802295, -9.551956054548583]
+ [0.9609713201943931, 0.09016515702875699, 0.7406119125581689, -14.75970239476487]
+ [0.9459687841488083, 0.08332851827517906, 0.7454654547299101, -19.23142779358623]
+ [0.9265337711834237, 0.07766401850093066, 0.7488463828538096, -23.692251307088352]
+ [0.900509908539332, 0.07322880289578418, 0.7507704928158713, -28.23116268433953]</code></pre><p>–- 2. Pure simulation for INITIAL GUESS (No PEM) –-</p><pre><code class="language-julia hljs">init_ps = parameter_values(fit_prob)
 init_buffer = copy(canonicalize(Tunable(), init_ps)[1])
 init_ps = replace(Tunable(), init_ps, init_buffer)
 setter(init_ps, [guess_gNa, guess_gK, guess_gleak])
@@ -225,25 +225,25 @@ t: 1001-element Vector{Float64}:
  100.0
 u: 1001-element Vector{Vector{Float64}}:
  [0.052, 0.596, 0.317, -65.0]
- [0.061290858530422515, 0.5942952843383316, 0.3181373054116239, -58.708170141246946]
- [0.07730047544215804, 0.5906097420633178, 0.3204915318624674, -56.70223246654551]
- [0.09253428914116847, 0.5862459234196881, 0.3232208846885666, -56.08879527296017]
- [0.10502266115176459, 0.5817235920244808, 0.32602113773129554, -55.9265093235526]
- [0.11466882867128274, 0.5772208254065617, 0.3287918409756385, -55.91055753939093]
- [0.12189796058700984, 0.572795252892333, 0.3315011249766161, -55.94299551617632]
- [0.12720308955715812, 0.5684649201604379, 0.33413936640888325, -55.99270195382878]
- [0.13101639848231353, 0.5642352991472472, 0.3367039957035814, -56.049566710058954]
- [0.13368349618210673, 0.5601076560512761, 0.3391947897373973, -56.110134915299206]
+ [0.061290858530422494, 0.5942952843383317, 0.318137305411624, -58.70817014124696]
+ [0.07730047544215801, 0.590609742063318, 0.3204915318624678, -56.702232466545524]
+ [0.09253428914116847, 0.5862459234196883, 0.32322088468856697, -56.08879527296019]
+ [0.10502266115176447, 0.5817235920244812, 0.3260211377312959, -55.926509323552615]
+ [0.1146688286712826, 0.577220825406562, 0.32879184097563885, -55.910557539390936]
+ [0.12189796058700975, 0.5727952528923334, 0.3315011249766164, -55.94299551617634]
+ [0.127203089557158, 0.5684649201604384, 0.3341393664088835, -55.99270195382879]
+ [0.1310163984823134, 0.5642352991472477, 0.3367039957035816, -56.04956671005895]
+ [0.13368349618210665, 0.5601076560512765, 0.3391947897373976, -56.11013491529922]
  ⋮
- [0.10648816061853875, 0.37795115149137154, 0.4151273978453163, -58.81759805141451]
- [0.10648816061768578, 0.37795114934422647, 0.415127397841671, -58.8175980514858]
- [0.10648816061684611, 0.3779511472307149, 0.41512739783808283, -58.81759805155599]
- [0.10648816061601976, 0.3779511451508274, 0.415127397834552, -58.81759805162507]
- [0.10648816061520672, 0.3779511431045707, 0.4151273978310784, -58.81759805169303]
- [0.10648816061440697, 0.3779511410919674, 0.41512739782766206, -58.81759805175989]
- [0.10648816061362056, 0.37795113911305667, 0.4151273978243032, -58.817598051825634]
- [0.1064881606128475, 0.37795113716789347, 0.41512739782100166, -58.817598051890265]
- [0.10648816061208778, 0.37795113525654894, 0.41512739781775787, -58.81759805195378]</code></pre><p>–- 3. Pure simulation for RECOVERED PARAMETERS (No PEM) –-</p><pre><code class="language-julia hljs">opt_gNa, opt_gK, opt_gleak = res.u
+ [0.10648816061853868, 0.3779511514913714, 0.4151273978453165, -58.8175980514145]
+ [0.10648816061768569, 0.37795114934422624, 0.41512739784167113, -58.817598051485795]
+ [0.10648816061684603, 0.3779511472307147, 0.41512739783808306, -58.81759805155598]
+ [0.10648816061601968, 0.37795114515082723, 0.4151273978345522, -58.81759805162506]
+ [0.10648816061520663, 0.37795114310457045, 0.41512739783107855, -58.817598051693025]
+ [0.1064881606144069, 0.37795114109196726, 0.4151273978276623, -58.81759805175989]
+ [0.10648816061362049, 0.3779511391130565, 0.41512739782430336, -58.81759805182563]
+ [0.10648816061284742, 0.37795113716789325, 0.4151273978210019, -58.817598051890265]
+ [0.10648816061208773, 0.3779511352565488, 0.41512739781775804, -58.81759805195378]</code></pre><p>–- 3. Pure simulation for RECOVERED PARAMETERS (No PEM) –-</p><pre><code class="language-julia hljs">opt_gNa, opt_gK, opt_gleak = res.u
 fit_ps = parameter_values(fit_prob)
 fit_buffer = copy(canonicalize(Tunable(), fit_ps)[1])
 fit_ps = replace(Tunable(), fit_ps, fit_buffer)
@@ -275,40 +275,40 @@ t: 1001-element Vector{Float64}:
  100.0
 u: 1001-element Vector{Vector{Float64}}:
  [0.052, 0.596, 0.317, -65.0]
- [0.05340833320940721, 0.5958057813650008, 0.3171454273858193, -64.06686742370685]
- [0.05633696581094941, 0.5952296362518418, 0.31754770752794903, -63.1901757572832]
- [0.06027522401555633, 0.5942822799751761, 0.3181949927259076, -62.3575837254637]
- [0.06493034406923058, 0.592970349313713, 0.3190779129629436, -61.55810606779197]
- [0.07013916124198889, 0.5912963211255762, 0.3201896625465307, -60.781058329523454]
- [0.07582172772227196, 0.5892578974148388, 0.32152635238025384, -60.015395336013846]
- [0.08195704458254169, 0.5868471835335801, 0.32308738913544144, -59.24914767805326]
- [0.08857197880389173, 0.5840489664966602, 0.3248763832960913, -58.46875680282845]
- [0.09573922500871691, 0.5808389195148529, 0.32690180635346255, -57.65803536080623]
+ [0.05341867593626602, 0.5958039056521621, 0.3171467000773709, -64.05826525880595]
+ [0.05637176627527607, 0.5952224864124358, 0.31755251363382514, -63.17469716500626]
+ [0.06034231347219115, 0.5942669066420377, 0.3182052197606379, -62.33656943792283]
+ [0.0650341602586268, 0.592944150719722, 0.3190951471448403, -61.53255719107533]
+ [0.07028243573542317, 0.5912569352315388, 0.32021526614609785, -60.75165542944803]
+ [0.07600659634955867, 0.5892030770041314, 0.3215615484615198, -59.98250219783454]
+ [0.08218597586455446, 0.5867746441424206, 0.3231333603904243, -59.21280093996116]
+ [0.08884867341491619, 0.5839561849916575, 0.32493438767879923, -58.4286281737858]
+ [0.09606962787671913, 0.5807228857377956, 0.3269733100056945, -57.61335787227967]
  ⋮
- [0.4896069431961476, 0.29874845970321046, 0.4760519846232567, -16.689084965009517]
- [0.6262779952536756, 0.272526856243403, 0.49735443074926994, 1.119267556670216]
- [0.77165063310856, 0.24700659186768578, 0.5267894744725108, 18.57108171471871]
- [0.8773878535434727, 0.22362784223654325, 0.560377595047712, 26.715175435987955]
- [0.9359050872215051, 0.2024387062276381, 0.592923468796211, 26.979937407945094]
- [0.9649322376689932, 0.1832749804344419, 0.6221075868437704, 23.926579649029083]
- [0.9787430097713842, 0.1659629047593466, 0.6474729386773075, 19.542773336473253]
- [0.9848161087107988, 0.15034511937451253, 0.6691563165711171, 14.553400513690159]
- [0.9866295755629044, 0.13628520041277184, 0.6874646285313152, 9.306748703429918]</code></pre><p>(Plotting code remains exactly the same)</p><pre><code class="language-julia hljs">p1 = plot(timesteps, V_data_noisy, label=&quot;Noisy Target&quot;, color=:gray, lw=1, alpha=0.8)
+ [0.2076972876536706, 0.37563265682534774, 0.43137477407149527, -49.451062321387]
+ [0.22186440164292248, 0.3700823989830402, 0.4345678467650881, -48.05590609718906]
+ [0.24026190716620024, 0.3635086317719034, 0.43833444085404744, -46.189549070721704]
+ [0.26494353100073925, 0.35545299466374725, 0.44291467885378266, -43.59242977739668]
+ [0.299417495426062, 0.3451144549446373, 0.44871797878718717, -39.81261445978859]
+ [0.34978421310523233, 0.33117382874171514, 0.4564820183115967, -34.03314721750796]
+ [0.42610150234788735, 0.3118833644559568, 0.46754539580418064, -24.762201689650478]
+ [0.5401587947081856, 0.2872554440620006, 0.4841766387945265, -10.148045950422103]
+ [0.6863255824272171, 0.26106443436671883, 0.5088173196720875, 8.729110523337598]</code></pre><p>(Plotting code remains exactly the same)</p><pre><code class="language-julia hljs">p1 = plot(timesteps, V_data_noisy, label=&quot;Noisy Target&quot;, color=:gray, lw=1, alpha=0.8)
 plot!(p1, timesteps, V_data_clean, label=&quot;True Clean&quot;, color=:black, lw=2)
 plot!(p1, timesteps, init_eval_sol[fit_sys.fit_neuron.cap.v], label=&quot;Initial Guess (Free-Running)&quot;, ls=:dot, lw=2, color=:blue)
 plot!(p1, timesteps, fit_eval_sol[fit_sys.fit_neuron.cap.v], label=&quot;Fit (Free-Running)&quot;, ls=:dash, lw=2, color=:red)
-title!(&quot;Voltage Trace Recovery (Noisy Data)&quot;)</code></pre><img src="decfcc23.svg" alt="Example block output"/><p>Plot the observer current.</p><pre><code class="language-julia hljs">I_obs = i_pem_getter(opt_sol_pem)
+title!(&quot;Voltage Trace Recovery (Noisy Data)&quot;)</code></pre><img src="95fc12fd.svg" alt="Example block output"/><p>Plot the observer current.</p><pre><code class="language-julia hljs">I_obs = i_pem_getter(opt_sol_pem)
 p2 = plot(timesteps, I_obs, label=&quot;Observer Current&quot;, color=:red, lw=1.5)
 title!(&quot;PEM Observer Current (Absorbing Noise)&quot;)
 hline!([0.0], color=:gray, ls=:dot, label=&quot;0&quot;)
 
 p = plot(p1, p2, layout=(2,1), size=(800, 700), legend=:outertop)
 xlabel!(p, &quot;Time (ms)&quot;)
-ylabel!(p, &quot;V (mV) / I (nA)&quot;)</code></pre><img src="5f7eb90f.svg" alt="Example block output"/><h2 id="5.-Parameter-Comparison"><a class="docs-heading-anchor" href="#5.-Parameter-Comparison">5. Parameter Comparison</a><a id="5.-Parameter-Comparison-1"></a><a class="docs-heading-anchor-permalink" href="#5.-Parameter-Comparison" title="Permalink"></a></h2><pre><code class="language-julia hljs">Markdown.parse(&quot;&quot;&quot;
+ylabel!(p, &quot;V (mV) / I (nA)&quot;)</code></pre><img src="5e70c8c4.svg" alt="Example block output"/><h2 id="5.-Parameter-Comparison"><a class="docs-heading-anchor" href="#5.-Parameter-Comparison">5. Parameter Comparison</a><a id="5.-Parameter-Comparison-1"></a><a class="docs-heading-anchor-permalink" href="#5.-Parameter-Comparison" title="Permalink"></a></h2><pre><code class="language-julia hljs">Markdown.parse(&quot;&quot;&quot;
 | Parameter | True Value | Initial Guess | Recovered Value |
 |-----------|------------|---------------|-----------------|
 | gNa       | $true_gNa  | $guess_gNa    | $(round(opt_gNa, digits=3)) |
 | gK        | $true_gK   | $guess_gK     | $(round(opt_gK, digits=3)) |
 | gleak     | $true_gleak| $guess_gleak  | $(round(opt_gleak, digits=3)) |
-&quot;&quot;&quot;)</code></pre><div class="markdown"><table><tr><th align="right">Parameter</th><th align="right">True Value</th><th align="right">Initial Guess</th><th align="right">Recovered Value</th></tr><tr><td align="right">gNa</td><td align="right">120.0</td><td align="right">10.0</td><td align="right">111.91</td></tr><tr><td align="right">gK</td><td align="right">36.0</td><td align="right">100.0</td><td align="right">32.669</td></tr><tr><td align="right">gleak</td><td align="right">0.3</td><td align="right">10.3</td><td align="right">0.429</td></tr></table>
-</div><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../14_pem_vectorized_pop/">« 14 pem vectorized pop</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Friday 17 July 2026 08:41">Friday 17 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+&quot;&quot;&quot;)</code></pre><div class="markdown"><table><tr><th align="right">Parameter</th><th align="right">True Value</th><th align="right">Initial Guess</th><th align="right">Recovered Value</th></tr><tr><td align="right">gNa</td><td align="right">120.0</td><td align="right">10.0</td><td align="right">113.167</td></tr><tr><td align="right">gK</td><td align="right">36.0</td><td align="right">100.0</td><td align="right">33.005</td></tr><tr><td align="right">gleak</td><td align="right">0.3</td><td align="right">10.3</td><td align="right">0.44</td></tr></table>
+</div><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../14_pem_vectorized_pop/">« 14 pem vectorized pop</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 28 July 2026 10:57">Tuesday 28 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

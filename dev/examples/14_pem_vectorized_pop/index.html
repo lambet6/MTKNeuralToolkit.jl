@@ -146,28 +146,28 @@ u0: 17-element Vector{Float64}:
   10.0</code></pre><h2 id="4.-Optimize-and-Plot"><a class="docs-heading-anchor" href="#4.-Optimize-and-Plot">4. Optimize and Plot</a><a id="4.-Optimize-and-Plot-1"></a><a class="docs-heading-anchor-permalink" href="#4.-Optimize-and-Plot" title="Permalink"></a></h2><pre><code class="language-julia hljs">println(&quot;Starting optimization (17 parameters)...&quot;)
 res = solve(optprob, BFGS(); maxiters=100)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">retcode: MaxIters
 u: 17-element Vector{Float64}:
- 110.34333738376655
- 113.05695427179349
- 115.65610137560967
- 119.13779839333813
- 119.62054202371483
- 121.36928622776563
- 124.47437985808763
- 126.59830230040608
- 128.58158260855316
- 132.81692873424655
-  36.29829704561497
-   0.3134391233811806
- 113.17393875435044
- 128.37930106761533
- 129.35146616001285
-  36.30341221405767
-   0.33790582572411626</code></pre><p>Extract recovered parameters</p><pre><code class="language-julia hljs">opt_gNa_E = res.u[1:N_E]
+ 109.10295974350409
+ 112.7796257416115
+ 114.60077864303652
+ 118.53791461820474
+ 118.28711182553819
+ 120.79268697504696
+ 123.96850283877532
+ 124.94968991597545
+ 127.26041030779788
+ 131.16531443298513
+  35.981256788113164
+   0.2974030763901839
+ 110.09825270445567
+ 125.9549220125756
+ 127.0653367029241
+  36.04383897884366
+   0.311606289159817</code></pre><p>Extract recovered parameters</p><pre><code class="language-julia hljs">opt_gNa_E = res.u[1:N_E]
 opt_gK_E  = res.u[N_E + 1]
 opt_gleak_E = res.u[N_E + 2]
 opt_gNa_I = res.u[N_E + 3 : N_E + N_I + 2]
 opt_gK_I  = res.u[N_E + N_I + 3]
-opt_gleak_I = res.u[N_E + N_I + 4]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.33790582572411626</code></pre><p>–- Pure simulation for INITIAL GUESS (No PEM) –-</p><pre><code class="language-julia hljs">pop_E_init = build_population(:pop_E_init, top_E; gNa=guess_gNa_E, gK=guess_gK, gleak=guess_gleak)
+opt_gleak_I = res.u[N_E + N_I + 4]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.311606289159817</code></pre><p>–- Pure simulation for INITIAL GUESS (No PEM) –-</p><pre><code class="language-julia hljs">pop_E_init = build_population(:pop_E_init, top_E; gNa=guess_gNa_E, gK=guess_gK, gleak=guess_gleak)
 pop_I_init = build_population(:pop_I_init, top_I; gNa=guess_gNa_I, gK=guess_gK, gleak=guess_gleak)
 
 syn_EE_init = build_synapse_block(pop_E_init, pop_E_init, W_EE; name=:syn_EE_init, E_rev=0.0)
@@ -238,9 +238,9 @@ eval_sol = solve(eval_prob, Rosenbrock23(); saveat=timesteps);</code></pre><p>�
 V_init_I_mat = reduce(hcat, init_sol[init_sys.pop_I_init.cap.v])
 V_eval_E_mat = reduce(hcat, eval_sol[eval_sys.pop_E_eval.cap.v])
 V_eval_I_mat = reduce(hcat, eval_sol[eval_sys.pop_I_eval.cap.v])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">3×501 Matrix{Float64}:
- -65.0  -64.9725  -64.9451  -64.9181  …  -50.4002  -47.2718  -43.3464
- -65.0  -64.9582  -64.917   -64.8766     -51.2852  -48.276   -44.469
- -65.0  -64.9573  -64.9152  -64.8739     -49.9076  -46.5357  -42.1334</code></pre><p>–- Plotting the Free-Running Dynamics –-</p><pre><code class="language-julia hljs">subset_E = [1, 5, 10]
+ -65.0  -64.9994  -64.9972  -64.9943  …  -51.0163  -47.9887  -44.2755
+ -65.0  -64.9844  -64.9679  -64.951      -51.8837  -48.9696  -45.3612
+ -65.0  -64.9833  -64.9658  -64.948      -50.5443  -47.2943  -43.1527</code></pre><p>–- Plotting the Free-Running Dynamics –-</p><pre><code class="language-julia hljs">subset_E = [1, 5, 10]
 labels_E_true = [&quot;True E&quot; &quot;&quot; &quot;&quot;]
 labels_E_init = [&quot;Init E&quot; &quot;&quot; &quot;&quot;]
 labels_E_fit  = [&quot;Fit E&quot; &quot;&quot; &quot;&quot;]
@@ -257,7 +257,7 @@ labels_I_fit  = [&quot;Fit I&quot; &quot;&quot; &quot;&quot;]
 p2 = plot(timesteps, V_data_I_mat&#39;, color=:black, lw=2, label=labels_I_true)
 plot!(p2, timesteps, V_init_I_mat&#39;, color=:steelblue, lw=1.5, label=labels_I_init)
 plot!(p2, timesteps, V_eval_I_mat&#39;, color=:crimson, lw=1.5, label=labels_I_fit)
-title!(&quot;Inhibitory Population&quot;)</code></pre><img src="ce6c4ce2.svg" alt="Example block output"/><p>Add initial guesses to these two plots</p><pre><code class="language-julia hljs">p3 = plot(1:N_E, gNa_E_true, label=&quot;True E gNa&quot;, lw=2, color=:black, shape=:circle)
+title!(&quot;Inhibitory Population&quot;)</code></pre><img src="09995bf0.svg" alt="Example block output"/><p>Add initial guesses to these two plots</p><pre><code class="language-julia hljs">p3 = plot(1:N_E, gNa_E_true, label=&quot;True E gNa&quot;, lw=2, color=:black, shape=:circle)
 plot!(p3, 1:N_E, guess_gNa_E, label=&quot;Init E gNa&quot;, lw=2, color=:steelblue, shape=:utriangle)
 plot!(p3, 1:N_E, opt_gNa_E, label=&quot;Recovered E gNa&quot;, lw=2, color=:crimson, shape=:square)
 title!(&quot;Heterogeneous gNa Recovery (E Pop)&quot;)
@@ -271,12 +271,12 @@ p = plot(p1, p2, p3, p4, layout=(4,1), size=(900, 1000), legend=:outertop)
 xlabel!(p, &quot;Time (ms) / Neuron Index&quot;)
 ylabel!(p, &quot;V (mV) / Conductance&quot;)
 
-p</code></pre><img src="6a21bbdf.svg" alt="Example block output"/><h2 id="5.-Comparison-of-scalar-parameters"><a class="docs-heading-anchor" href="#5.-Comparison-of-scalar-parameters">5. Comparison of scalar parameters</a><a id="5.-Comparison-of-scalar-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#5.-Comparison-of-scalar-parameters" title="Permalink"></a></h2><pre><code class="language-julia hljs">Markdown.parse(&quot;&quot;&quot;
+p</code></pre><img src="db405953.svg" alt="Example block output"/><h2 id="5.-Comparison-of-scalar-parameters"><a class="docs-heading-anchor" href="#5.-Comparison-of-scalar-parameters">5. Comparison of scalar parameters</a><a id="5.-Comparison-of-scalar-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#5.-Comparison-of-scalar-parameters" title="Permalink"></a></h2><pre><code class="language-julia hljs">Markdown.parse(&quot;&quot;&quot;
 | Parameter | True Value | Initial Guess | Recovered Value |
 |-----------|------------|---------------|-----------------|
 | E: gK     | $true_gK   | $guess_gK     | $(round(opt_gK_E, digits=3)) |
 | E: gleak  | $true_gleak| $guess_gleak  | $(round(opt_gleak_E, digits=3)) |
 | I: gK     | $true_gK   | $guess_gK     | $(round(opt_gK_I, digits=3)) |
 | I: gleak  | $true_gleak| $guess_gleak  | $(round(opt_gleak_I, digits=3)) |
-&quot;&quot;&quot;)</code></pre><div class="markdown"><table><tr><th align="right">Parameter</th><th align="right">True Value</th><th align="right">Initial Guess</th><th align="right">Recovered Value</th></tr><tr><td align="right">E: gK</td><td align="right">36.0</td><td align="right">100.0</td><td align="right">36.298</td></tr><tr><td align="right">E: gleak</td><td align="right">0.3</td><td align="right">10.0</td><td align="right">0.313</td></tr><tr><td align="right">I: gK</td><td align="right">36.0</td><td align="right">100.0</td><td align="right">36.303</td></tr><tr><td align="right">I: gleak</td><td align="right">0.3</td><td align="right">10.0</td><td align="right">0.338</td></tr></table>
-</div><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../13_pem_hidden_chain/">« 13 pem hidden chain</a><a class="docs-footer-nextpage" href="../15_noisy_estimation/">15 noisy estimation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Friday 17 July 2026 08:39">Friday 17 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+&quot;&quot;&quot;)</code></pre><div class="markdown"><table><tr><th align="right">Parameter</th><th align="right">True Value</th><th align="right">Initial Guess</th><th align="right">Recovered Value</th></tr><tr><td align="right">E: gK</td><td align="right">36.0</td><td align="right">100.0</td><td align="right">35.981</td></tr><tr><td align="right">E: gleak</td><td align="right">0.3</td><td align="right">10.0</td><td align="right">0.297</td></tr><tr><td align="right">I: gK</td><td align="right">36.0</td><td align="right">100.0</td><td align="right">36.044</td></tr><tr><td align="right">I: gleak</td><td align="right">0.3</td><td align="right">10.0</td><td align="right">0.312</td></tr></table>
+</div><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../13_pem_hidden_chain/">« 13 pem hidden chain</a><a class="docs-footer-nextpage" href="../15_noisy_estimation/">15 noisy estimation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 28 July 2026 10:55">Tuesday 28 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

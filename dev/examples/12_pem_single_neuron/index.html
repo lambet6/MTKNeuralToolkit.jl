@@ -133,25 +133,25 @@ t: 1001-element Vector{Float64}:
  100.0
 u: 1001-element Vector{Vector{Float64}}:
  [0.052, 0.596, 0.317, -65.0]
- [0.05330338374200764, 0.5958255162252476, 0.31713202965461634, -64.1040133162064]
- [0.056190366133069096, 0.5952630421560415, 0.31752521938134604, -63.278842230968664]
- [0.05970371391559026, 0.5944036122532136, 0.3181142627288365, -62.65392482185962]
- [0.0638334697844664, 0.5932272585944367, 0.318908798456183, -61.73866263560406]
- [0.0693389896316521, 0.5915591969976186, 0.3200177586720253, -60.69351710723304]
- [0.07528600541735019, 0.5895071184006475, 0.3213643087635889, -60.18789117801835]
- [0.08007634545648504, 0.587369191616517, 0.3227558283807624, -60.15287590679907]
- [0.08334044512415863, 0.5852854167462659, 0.32410379215906465, -60.29266285737131]
- [0.08579967814656125, 0.5832133056224313, 0.3254354642513115, -59.83674239586109]
+ [0.05330224258733806, 0.5958257231397336, 0.31713188917928076, -64.10495208851454]
+ [0.056186658548967976, 0.5952638065465109, 0.3175247052435673, -63.28045619547058]
+ [0.05969677442116969, 0.5944052124703861, 0.3181131958489684, -62.65603848551341]
+ [0.06382260661121056, 0.5932300013703545, 0.31890698767163456, -61.74135768811049]
+ [0.06932400701385522, 0.5915633269870064, 0.32001506698805826, -60.696519014785444]
+ [0.07526597061212055, 0.5895130026642212, 0.32136052535063325, -60.19174969938137]
+ [0.08005300484517525, 0.587376725400251, 0.322751031276136, -60.156235625323916]
+ [0.08331498384191342, 0.5852944926743975, 0.32409805294649596, -60.29563796805962]
+ [0.08576533242114168, 0.5832252000656628, 0.3254279853731604, -59.84447136636075]
  ⋮
- [0.9875074172127742, 0.14381984320904742, 0.6850663450304293, 11.12792864906599]
- [0.9869351957926944, 0.13044999543920538, 0.7010952312262744, 5.714671954717959]
- [0.9841421088596434, 0.11849109765619846, 0.7143308929507843, 0.45147594139878483]
- [0.979207988075033, 0.10785999276829725, 0.7251318683182817, -4.581177374678396]
- [0.9718653401780953, 0.09849398075958725, 0.7337973444428891, -9.427729047334804]
- [0.9612900455720246, 0.09037286568093664, 0.7405040333797214, -14.64038153792405]
- [0.9463959628164657, 0.08350417735757637, 0.7453964491934343, -19.119028458717224]
- [0.9270971002410364, 0.07780812720689355, 0.7488129390132207, -23.580577629683702]
- [0.9012477604834492, 0.07334152743119304, 0.7507699583373695, -28.12115473964463]</code></pre><p>–- 2. Pure simulation for INITIAL GUESS (No PEM) –-</p><pre><code class="language-julia hljs">init_ps = parameter_values(fit_prob)
+ [0.9875191542206222, 0.14302611819542213, 0.6858944479464151, 10.865684142318866]
+ [0.9868375378926052, 0.1297373827687635, 0.7017803454320481, 5.451275057477877]
+ [0.9839418768342546, 0.11785432768944293, 0.7148887520928288, 0.1913368186637163]
+ [0.9788936886005584, 0.10729493325520807, 0.7255766823419945, -4.834969112971681]
+ [0.9714132075401531, 0.09799754731699004, 0.7341415435561855, -9.673783077707123]
+ [0.9606621646038648, 0.08994319495164053, 0.7407583645712061, -14.878176801931987]
+ [0.9455406223372396, 0.08314037780951977, 0.7455701577880091, -19.34966581635644]
+ [0.9259617474927013, 0.07750895188876242, 0.7489131307147232, -23.805165316589722]
+ [0.8997550691087185, 0.07310653932758869, 0.7508021810491343, -28.342850142202455]</code></pre><p>–- 2. Pure simulation for INITIAL GUESS (No PEM) –-</p><pre><code class="language-julia hljs">init_ps = parameter_values(fit_prob)
 init_buffer = copy(canonicalize(Tunable(), init_ps)[1])
 init_ps = replace(Tunable(), init_ps, init_buffer)
 setter(init_ps, [guess_gNa, guess_gK, guess_gleak])
@@ -182,25 +182,25 @@ t: 1001-element Vector{Float64}:
  100.0
 u: 1001-element Vector{Vector{Float64}}:
  [0.052, 0.596, 0.317, -65.0]
- [0.061290858530422515, 0.5942952843383316, 0.3181373054116239, -58.708170141246946]
- [0.07730047544215804, 0.5906097420633178, 0.3204915318624674, -56.70223246654551]
- [0.09253428914116847, 0.5862459234196881, 0.3232208846885666, -56.08879527296017]
- [0.10502266115176459, 0.5817235920244808, 0.32602113773129554, -55.9265093235526]
- [0.11466882867128274, 0.5772208254065617, 0.3287918409756385, -55.91055753939093]
- [0.12189796058700984, 0.572795252892333, 0.3315011249766161, -55.94299551617632]
- [0.12720308955715812, 0.5684649201604379, 0.33413936640888325, -55.99270195382878]
- [0.13101639848231353, 0.5642352991472472, 0.3367039957035814, -56.049566710058954]
- [0.13368349618210673, 0.5601076560512761, 0.3391947897373973, -56.110134915299206]
+ [0.061290858530422494, 0.5942952843383317, 0.318137305411624, -58.70817014124696]
+ [0.07730047544215801, 0.590609742063318, 0.3204915318624678, -56.702232466545524]
+ [0.09253428914116847, 0.5862459234196883, 0.32322088468856697, -56.08879527296019]
+ [0.10502266115176447, 0.5817235920244812, 0.3260211377312959, -55.926509323552615]
+ [0.1146688286712826, 0.577220825406562, 0.32879184097563885, -55.910557539390936]
+ [0.12189796058700975, 0.5727952528923334, 0.3315011249766164, -55.94299551617634]
+ [0.127203089557158, 0.5684649201604384, 0.3341393664088835, -55.99270195382879]
+ [0.1310163984823134, 0.5642352991472477, 0.3367039957035816, -56.04956671005895]
+ [0.13368349618210665, 0.5601076560512765, 0.3391947897373976, -56.11013491529922]
  ⋮
- [0.10648816061853875, 0.37795115149137154, 0.4151273978453163, -58.81759805141451]
- [0.10648816061768578, 0.37795114934422647, 0.415127397841671, -58.8175980514858]
- [0.10648816061684611, 0.3779511472307149, 0.41512739783808283, -58.81759805155599]
- [0.10648816061601976, 0.3779511451508274, 0.415127397834552, -58.81759805162507]
- [0.10648816061520672, 0.3779511431045707, 0.4151273978310784, -58.81759805169303]
- [0.10648816061440697, 0.3779511410919674, 0.41512739782766206, -58.81759805175989]
- [0.10648816061362056, 0.37795113911305667, 0.4151273978243032, -58.817598051825634]
- [0.1064881606128475, 0.37795113716789347, 0.41512739782100166, -58.817598051890265]
- [0.10648816061208778, 0.37795113525654894, 0.41512739781775787, -58.81759805195378]</code></pre><p>–- 3. Pure simulation for RECOVERED PARAMETERS (No PEM) –-</p><pre><code class="language-julia hljs">opt_gNa, opt_gK, opt_gleak = res.u
+ [0.10648816061853868, 0.3779511514913714, 0.4151273978453165, -58.8175980514145]
+ [0.10648816061768569, 0.37795114934422624, 0.41512739784167113, -58.817598051485795]
+ [0.10648816061684603, 0.3779511472307147, 0.41512739783808306, -58.81759805155598]
+ [0.10648816061601968, 0.37795114515082723, 0.4151273978345522, -58.81759805162506]
+ [0.10648816061520663, 0.37795114310457045, 0.41512739783107855, -58.817598051693025]
+ [0.1064881606144069, 0.37795114109196726, 0.4151273978276623, -58.81759805175989]
+ [0.10648816061362049, 0.3779511391130565, 0.41512739782430336, -58.81759805182563]
+ [0.10648816061284742, 0.37795113716789325, 0.4151273978210019, -58.817598051890265]
+ [0.10648816061208773, 0.3779511352565488, 0.41512739781775804, -58.81759805195378]</code></pre><p>–- 3. Pure simulation for RECOVERED PARAMETERS (No PEM) –-</p><pre><code class="language-julia hljs">opt_gNa, opt_gK, opt_gleak = res.u
 fit_ps = parameter_values(fit_prob)
 fit_buffer = copy(canonicalize(Tunable(), fit_ps)[1])
 fit_ps = replace(Tunable(), fit_ps, fit_buffer)
@@ -212,7 +212,7 @@ p1 = plot(timesteps, V_data_noisy, label=&quot;Noisy Target&quot;, color=:gray, 
 plot!(p1, timesteps, V_data_clean, label=&quot;True Clean&quot;, color=:black, lw=2)
 plot!(p1, timesteps, init_eval_sol[fit_sys.fit_neuron.cap.v], label=&quot;Initial Guess (Free-Running)&quot;, ls=:dot, lw=2, color=:blue)
 plot!(p1, timesteps, fit_eval_sol[fit_sys.fit_neuron.cap.v], label=&quot;Fit (Free-Running)&quot;, ls=:dash, lw=2, color=:red)
-title!(&quot;Voltage Trace Recovery (Noisy Data)&quot;)</code></pre><img src="52fc596d.svg" alt="Example block output"/><p>Plot the observer current.</p><pre><code class="language-julia hljs">I_obs = i_pem_getter(opt_sol_pem)
+title!(&quot;Voltage Trace Recovery (Noisy Data)&quot;)</code></pre><img src="6f7e2b79.svg" alt="Example block output"/><p>Plot the observer current.</p><pre><code class="language-julia hljs">I_obs = i_pem_getter(opt_sol_pem)
 p2 = plot(timesteps, I_obs, label=&quot;Observer Current&quot;, color=:red, lw=1.5)
 title!(&quot;PEM Observer Current (Absorbing Noise)&quot;)
 hline!([0.0], color=:gray, ls=:dot, label=&quot;0&quot;)
@@ -220,11 +220,11 @@ hline!([0.0], color=:gray, ls=:dot, label=&quot;0&quot;)
 p = plot(p1, p2, layout=(2,1), size=(800, 700), legend=:outertop)
 xlabel!(p, &quot;Time (ms)&quot;)
 ylabel!(p, &quot;V (mV) / I (nA)&quot;)
-p</code></pre><img src="f0e7ba2e.svg" alt="Example block output"/><p>Note the slight phase lag at the end of the sim.</p><h2 id="5.-Parameter-Comparison"><a class="docs-heading-anchor" href="#5.-Parameter-Comparison">5. Parameter Comparison</a><a id="5.-Parameter-Comparison-1"></a><a class="docs-heading-anchor-permalink" href="#5.-Parameter-Comparison" title="Permalink"></a></h2><pre><code class="language-julia hljs">Markdown.parse(&quot;&quot;&quot;
+p</code></pre><img src="c1220610.svg" alt="Example block output"/><p>Note the slight phase lag at the end of the sim.</p><h2 id="5.-Parameter-Comparison"><a class="docs-heading-anchor" href="#5.-Parameter-Comparison">5. Parameter Comparison</a><a id="5.-Parameter-Comparison-1"></a><a class="docs-heading-anchor-permalink" href="#5.-Parameter-Comparison" title="Permalink"></a></h2><pre><code class="language-julia hljs">Markdown.parse(&quot;&quot;&quot;
 | Parameter | True Value | Initial Guess | Recovered Value |
 |-----------|------------|---------------|-----------------|
 | gNa       | $true_gNa  | $guess_gNa    | $(round(opt_gNa, digits=3)) |
 | gK        | $true_gK   | $guess_gK     | $(round(opt_gK, digits=3)) |
 | gleak     | $true_gleak| $guess_gleak  | $(round(opt_gleak, digits=3)) |
-&quot;&quot;&quot;)</code></pre><div class="markdown"><table><tr><th align="right">Parameter</th><th align="right">True Value</th><th align="right">Initial Guess</th><th align="right">Recovered Value</th></tr><tr><td align="right">gNa</td><td align="right">120.0</td><td align="right">10.0</td><td align="right">112.064</td></tr><tr><td align="right">gK</td><td align="right">36.0</td><td align="right">100.0</td><td align="right">32.712</td></tr><tr><td align="right">gleak</td><td align="right">0.3</td><td align="right">10.3</td><td align="right">0.43</td></tr></table>
-</div><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../10_param_estimation_weight/">« 10 param estimation weight</a><a class="docs-footer-nextpage" href="../13_pem_hidden_chain/">13 pem hidden chain »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Friday 17 July 2026 08:37">Friday 17 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+&quot;&quot;&quot;)</code></pre><div class="markdown"><table><tr><th align="right">Parameter</th><th align="right">True Value</th><th align="right">Initial Guess</th><th align="right">Recovered Value</th></tr><tr><td align="right">gNa</td><td align="right">120.0</td><td align="right">10.0</td><td align="right">112.119</td></tr><tr><td align="right">gK</td><td align="right">36.0</td><td align="right">100.0</td><td align="right">32.743</td></tr><tr><td align="right">gleak</td><td align="right">0.3</td><td align="right">10.3</td><td align="right">0.429</td></tr></table>
+</div><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../10_param_estimation_weight/">« 10 param estimation weight</a><a class="docs-footer-nextpage" href="../13_pem_hidden_chain/">13 pem hidden chain »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 28 July 2026 10:53">Tuesday 28 July 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
