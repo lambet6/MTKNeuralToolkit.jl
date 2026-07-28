@@ -10,6 +10,9 @@
 # We intentionally **do not** constrain the parameters to demonstrate a critical concept in system identification: **unidentifiability**. 
 # Without physiological constraints, the optimizer can find "non-physical" parameter combinations (e.g., negative conductances) that still successfully drive the observed output (neuron C).
 
+# !!! note "Some sort of namespacing(?) issue"
+#     If I run this on my computer, it trains perfectly: we get the exact voltage trace of $C$, while B converges on crazy parameters that nevertheless match the observed data.
+#     When building with literate.jl for some reason the optimisation seems to not run and the fitted parameters are the same as initial
 
 using MTKNeuralToolkit
 using SymbolicIndexingInterface: getu

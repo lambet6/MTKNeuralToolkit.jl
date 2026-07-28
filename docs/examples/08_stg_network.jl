@@ -97,7 +97,7 @@ sys = mtkcompile(net.sys)
 
 # ## Simulate & Plot
 # STG networks often need a few seconds to settle into their characteristic 
-# alternating rhythm (pyloric rhythm). We simulate for 3000 ms.
+# alternating rhythm (pyloric rhythm). We simulate for 10000 ms.
 tspan = (0.0, 10000.0)
 prob = ODEProblem(sys, [], tspan, jac=true, sparse=true)
 
