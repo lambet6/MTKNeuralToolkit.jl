@@ -11,6 +11,7 @@ ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
 ModelingToolkitNeuralNets = "f162e290-f571-43a6-83d9-22ecc16da15f"
 ModelingToolkitStandardLibrary = "16a59e39-deab-5bd0-87e4-056b12336739"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+OrdinaryDiffEqDifferentiation = "4302a76b-040a-498a-8c04-15b101fed76b"
 PreallocationTools = "d236fae5-4411-538c-8e31-a6e3d9e00b46"
 PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -18,22 +19,20 @@ SciMLStructures = "53ae85a6-f571-4167-b2af-e1d143709226"
 SymbolicIndexingInterface = "2efcf032-c050-4f8e-a9bb-153293bab1f5"
 SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
-OrdinaryDiffEqDifferentiation = "4302a76b-040a-498a-8c04-15b101fed76b" # delete at some point. pinning due to upstream bug in a newer version 3.2.3
-
 
 [compat]
 DiffEqCallbacks = "4"
-OrdinaryDiffEq = "7"
 DifferentiationInterface = "0.7"
+ModelingToolkit = "11.37.1"
 ModelingToolkitStandardLibrary = "2.29.0"
+OrdinaryDiffEq = "7"
+OrdinaryDiffEqDifferentiation = "=3.2.2"
 PreallocationTools = "1.2.0"
 PrecompileTools = "1"
 SciMLStructures = "1.10"
 SymbolicIndexingInterface = "0.3"
 SymbolicUtils = "4"
 Symbolics = "7"
-ModelingToolkit="11"
-OrdinaryDiffEqDifferentiation = "=3.2.2" # just to fix a 3.2.3 precompilation bug
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
