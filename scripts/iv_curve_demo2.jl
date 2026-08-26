@@ -49,7 +49,8 @@
 # -----
 #   include("scripts/iv_curve.jl"); using .IVCurves
 #   include("scripts/iv_curve_demo2.jl")
-#   demo2()
+#   demo2()              # single channels
+#   demo_neurons()       # groups of channels ("neurons"), via iv_curve(channels::Vector)
 #
 # ContinuousSpikers and PrinzNeuron are submodules of MTKNeuralToolkit.
 # `using MTKNeuralToolkit` alone won't bring bare names like `PrinzNeuron`
@@ -143,3 +144,63 @@ function demo2()
 
     demo_grid(named_channels)
 end
+
+# -----------------------------------------------------------------------------
+# Grid plotting helper for the *group* iv_curve() method: run it on each
+# (label => channels) list and show both the I_ss and I_peak per-channel
+# breakdowns (plot_iv_group overlays each channel's contribution together
+# with the total "neuron" current, in bold black).
+# -----------------------------------------------------------------------------
+function demo_group_grid(named_groups)
+    plots = mapreduce(vcat, named_groups) do (label, channels, kwargs)
+        res = iv_curve(channels; kwargs...)
+        ss_plt   = plot_iv_group(res; which = :I_ss)
+        peak_plt = plot_iv_group(res; which = :I_peak)
+        plot!(ss_plt; title = "$label (I_ss)")
+        plot!(peak_plt; title = "$label (I_peak)")
+        [ss_plt, peak_plt]
+    end
+    nrows = length(named_groups)
+    plot(plots...; layout = (nrows, 2), size = (500 * 2, 380 * nrows), margin = 30px)
+end
+
+function demo_neurons()
+    # --- Textbook HH neuron: Na+ + K+ + leak, wired in parallel (no
+    #     capacitor -- same clamp-circuit topology as the single-channel
+    #     demos above, just with several channels sharing the clamp).
+    @named hh_na   = MTKNeuralToolkit.HodgkinHuxley.SodiumChannel()
+    @named hh_k    = MTKNeuralToolkit.HodgkinHuxley.PotassiumChannel()
+    @named hh_leak = MTKNeuralToolkit.HodgkinHuxley.LeakChannel()
+
+    # --- Morris-Lecar neuron: its two gated currents plus the leak that was
+    #     skipped in demo2() above.
+    ml_ca, ml_k, ml_leak = MTKNeuralToolkit.ContinuousSpikers.MorrisLecar(name = :ml)
+
+    # --- Prinz STG-style neuron, minus its two Ca2+ currents (CaS/CaT are
+    #     built via CaVChannel, which needs a CalciumTracker pool wired up --
+    #     something the bare parallel-channel clamp circuit used by
+    #     iv_curve(channels) doesn't provide). What's left -- Na+, Ka, Kdr,
+    #     Ih, leak -- are all plain GateSpec/InfTau currents, same as the
+    #     single-channel Prinz demos above.
+    @named stg_na   = GenericChannel(g = 100.0, E_rev = 50.0,  gates = MTKNeuralToolkit.PrinzNeuron.na_gates)
+    @named stg_ka   = GenericChannel(g = 50.0,  E_rev = -80.0, gates = MTKNeuralToolkit.PrinzNeuron.ka_gates)
+    @named stg_kdr  = GenericChannel(g = 50.0,  E_rev = -80.0, gates = MTKNeuralToolkit.PrinzNeuron.kdr_gates)
+    @named stg_h    = GenericChannel(g = 0.5,   E_rev = -20.0, gates = MTKNeuralToolkit.PrinzNeuron.h_gates)
+    @named stg_leak = GenericChannel(g = 0.3,   E_rev = -50.0, gates = GateSpec[])
+
+    # --- A made-up "neuron" combining the two custom channels from demo2():
+    #     the persistent current sets a depolarizing floor and the window
+    #     current adds its own steady-state bump on top of it.
+    @named custom_nap = GenericChannel(g = 15.0, E_rev = 50.0, gates = persistent_gates)
+    @named custom_win = GenericChannel(g = 5.0,  E_rev = 50.0, gates = window_gates)
+
+    named_groups = [
+        ("HH neuron (Na+K+leak)",           [hh_na, hh_k, hh_leak],                    (;)),
+        ("Morris-Lecar neuron (Ca+K+leak)", [ml_ca, ml_k, ml_leak],                     (;)),
+        ("Prinz STG neuron (no Ca)",        [stg_na, stg_ka, stg_kdr, stg_h, stg_leak], (t_step = 600.0,)),  # Ka's tau_h up to ~77 ms
+        ("custom: persistent + window",     [custom_nap, custom_win],                  (t_step = 300.0,)),  # window's tau_h = 25 ms
+    ]
+
+    demo_group_grid(named_groups)
+end
+
