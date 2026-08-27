@@ -248,12 +248,6 @@ end
 # plus calcium tracking, so a much busier currentscape than the plain HH demo.
 # It's a crustacean-STG pacemaker cell, so it bursts on its own -- no driver
 # current needed.
-#
-# NB: this assumes `LiuCalciumNeuron` is wired into your package the same way
-# `HodgkinHuxley` is (i.e. accessible as `MTKNeuralToolkit.LiuCalciumNeuron`).
-# If it currently lives as a loose file, `include` it into your neuron-model
-# location first so the relative `..MTKNeuralToolkit` import inside it
-# resolves correctly.
 # -----------------------------------------------------------------------------
 using MTKNeuralToolkit: LiuCalciumNeuron
 

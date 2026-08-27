@@ -13,6 +13,35 @@
     return System(Equation[], t, vars, SymbolicT[]; name=name)
 end
 
+"""
+    FixedCalcium(; name, Ca=0.05, topology=Scalar())
+ 
+A constant intracellular Ca2+ source, analogous to `FixedReversal` for the
+electrical domain. Clamps `port.Ca` to a fixed concentration, which ties off
+any `ca_port` connected to it (satisfying the connector's flow/potential
+equations) without needing a full `CalciumPool`.
+ 
+Useful for voltage-clamp protocols (see `iv_curve`) where you want to record
+a `CaVChannel`/`KCaChannel`'s current-voltage relationship at a fixed,
+buffered intracellular Ca2+ level -- the same role that EGTA/BAPTA chelation
+plays in a real patch pipette.
+"""
+@component function FixedCalcium(; name, Ca=0.05, topology=Scalar())
+    @named port = CaPort(topology=topology)
+ 
+    if topology isa Scalar
+        @parameters Ca = Ca
+    else
+        Ca_val = Ca isa AbstractArray ? Ca : fill(Ca, topology.N)
+        @parameters begin
+            Ca[1:topology.N] = Ca_val
+        end
+    end
+ 
+    eqs = Equation[port.Ca ~ Ca]
+    return System(eqs, t, SymbolicT[], [Ca]; systems=[port], name=name)
+end
+
 @component function CalciumPool(; name, decay=100.0, Ca_init=0.0, topology=Scalar())
     @named port = CaPort(topology=topology)
     

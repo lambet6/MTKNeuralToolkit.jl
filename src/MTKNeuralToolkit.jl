@@ -31,7 +31,7 @@ include("network.jl")
 export build_compartment, build_acausal_network, build_synapse_block
 
 export Compartment, Network, SynapseSpec, CouplingSpec
-export CaVChannel, KCaChannel, CalciumPool, CalciumTracker, NoCalcium, CaPort
+export CaVChannel, KCaChannel, CalciumPool, CalciumTracker, NoCalcium, CaPort, FixedCalcium
 export ExpSynapse, VectorizedExpSynapse, CholSynapse, GlutSynapse, GapJunction, STDPSynapse
 
 export ContinuousLIFChannel
