@@ -192,8 +192,8 @@ end
 function demo_group_grid(named_groups)
     plots = mapreduce(vcat, named_groups) do (label, channels, kwargs)
         res = iv_curve(channels; kwargs...)
-        ss_plt   = plot_iv_group(res; which = :I_ss)
-        peak_plt = plot_iv_group(res; which = :I_peak)
+        ss_plt   = plot_iv(res; which = :I_ss)
+        peak_plt = plot_iv(res; which = :I_peak)
         plot!(ss_plt; title = "$label (I_ss)")
         plot!(peak_plt; title = "$label (I_peak)")
         [ss_plt, peak_plt]

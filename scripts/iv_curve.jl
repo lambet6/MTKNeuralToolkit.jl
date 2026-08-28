@@ -1,23 +1,6 @@
-#        +--- clamp.p ---+--- channel.p ---+
-#        |                                 |
-#     [ v ~ E ]                   [ i ~ g*m^p*(v - E_rev) ]
-#        |                                 |
-#        +--- clamp.n ---+--- channel.n ---+--- gnd (v = 0)
-#
-# 
-#   1. Hold at `V_hold` until the gates reach steady state (done once).
-#   2. Step to `V_test`, record the current for `t_step`.
-#
-#   I_inst   current in the first instant after the step, before the gates have
-#            moved. This is the open-channel (instantaneous) relation; an ohmic
-#            channel gives a straight line here.
-#   I_peak   the largest excursion during the step. This is the textbook curve
-#            for a transient current like Na+, where activation is fast and
-#            inactivation eats the current before steady state.
-#   I_ss     current at the end of the step: the steady-state curve, gates fully
-#            relaxed to their voltage-dependent equilibrium.
-#
-
+# ==========================================
+# Voltage-Clamp I-V Curve Protocol
+# ==========================================
 module IVCurves
 
 using MTKNeuralToolkit
@@ -32,12 +15,21 @@ using Plots.PlotMeasures: px
 export iv_curve, plot_iv,
        iv_curve_continuation, plot_iv_continuation
 
+# Offset from integer mV so the default grid doesn't land exactly on the
+# removable singularities in classic HH-style rate functions (alpha_m at
+# -40, alpha_n at -55, etc.) -- see the "non-finite current" error below.
 const DEFAULT_VOLTAGES = -99.5:1.0:60.5
 
-# Shared clamp-circuit builder: channels wired in parallel to a FixedReversal
-# clamp (no capacitor), any ca_port-bearing channels sharing one FixedCalcium
-# clamp. Used by both `iv_curve` and `iv_curve_continuation` below -- the
-# circuit itself doesn't depend on how the resulting system gets solved.
+
+"""
+    _build_clamp_circuit(channels; V_hold, Ca_hold)
+
+Internal helper that wires `channels` straight to a `FixedReversal` voltage
+clamp -- bypassing `build_compartment` and the membrane capacitor entirely --
+plus a `FixedCalcium` clamp at `Ca_hold` for any channel exposing a
+`ca_port`. This is the compiled circuit `iv_curve`/`iv_curve_continuation`
+step through.
+"""
 function _build_clamp_circuit(channels::AbstractVector; V_hold, Ca_hold)
     @named clamp = FixedReversal(E = V_hold)
     @named gnd   = Ground()
@@ -48,8 +40,6 @@ function _build_clamp_circuit(channels::AbstractVector; V_hold, Ca_hold)
     ]
     systems = System[clamp; channels; gnd]
 
-    # Any channels with a ca_port (CaVChannel, KCaChannel) share one fixed
-    # Ca2+ clamp -- see the iv_curve docstring for why.
     ca_channels = filter(ch -> hasproperty(ch, :ca_port), channels)
     if !isempty(ca_channels)
         @named ca_clamp = FixedCalcium(Ca = Ca_hold)
@@ -61,33 +51,38 @@ function _build_clamp_circuit(channels::AbstractVector; V_hold, Ca_hold)
     return mtkcompile(circuit)
 end
 
+
 """
-    iv_curve(channels::AbstractVector; voltages, V_hold, t_hold, t_step, Ca_hold, solver, reltol, abstol)
+    iv_curve(channels; voltages=DEFAULT_VOLTAGES, V_hold=-80.0, t_hold=500.0, t_step=100.0, Ca_hold=0.05, solver=Rosenbrock23(), reltol=1e-8, abstol=1e-8)
 
-Run a voltage-clamp protocol on a "neuron" made of one or more ion `channels`
-wired in parallel (all `p` pins tied together to the clamp, all `n` pins tied
-to ground) -- a `FixedReversal` clamp does the job of the capacitor, so there
-is no membrane capacitance to charge. Pass a single-element vector to study
-one channel on its own, e.g. `iv_curve([na])`.
+Runs a standard voltage-clamp protocol on `channels`: hold at `V_hold` for
+`t_hold` ms to let the gates settle, then step to each voltage in `voltages`
+in turn for `t_step` ms, recording the instantaneous, peak, and steady-state
+current through every channel (plus their sum, `:neuron`).
 
-`channels` are already-named MTK systems built on a OnePort, e.g.
-`@named na = GenericChannel(g=120.0, E_rev=50.0, gates=sodium_gates)`. Any
-that expose a `ca_port` (i.e. `CaVChannel` or `KCaChannel`) share a single
-`FixedCalcium` clamp holding intracellular Ca2+ at the fixed concentration
-`Ca_hold` for the whole protocol -- the same idea as the electrical
-`V_hold`/`voltages` clamp, but for the chemical domain. This mirrors
-buffering intracellular Ca2+ with a chelator (EGTA/BAPTA) in a real patch
-pipette so the `CaVChannel`'s Nernst potential and any Ca-dependent gating
-(`KCaChannel`) stay well-defined and don't drift during the step.
+`channels` can be a single channel or a vector of channels sharing the
+clamp, giving the combined (and per-channel) I-V relationship of a whole
+"neuron" built from those channels. Any channel exposing a `ca_port` (e.g.
+`CaVChannel`, `KCaChannel`) is tied off with a `FixedCalcium` clamp at
+`Ca_hold` for the duration.
 
-Returns a NamedTuple with fields `V`, `I_inst`, `I_peak`, `I_ss`, the raw
-`times` and `traces` per step, and the compiled system `sys` (useful for
-plotting gating variables afterwards). `I_inst`, `I_peak` and `I_ss` are
-`length(voltages) x (length(channels)+1)` matrices: one column per channel
-(in `channels` order), plus a final "neuron" column holding the total clamp
-current (`-sys.clamp.i`, i.e. the sum of all channel currents) -- for a
-single channel this column just duplicates the channel's own current.
-`channel_names` lists the corresponding column names.
+# Arguments
+- `channels`: A channel system, or vector of channel systems, to clamp.
+- `voltages`: The grid of step voltages to sweep (mV).
+- `V_hold`: The holding potential before each step (mV).
+- `t_hold`: Duration of the initial holding phase (ms).
+- `t_step`: Duration of each voltage step (ms).
+- `Ca_hold`: Intracellular Ca2+ concentration held fixed for `ca_port`-bearing channels.
+- `solver`, `reltol`, `abstol`: Passed through to `solve`.
+
+# Returns
+- A `NamedTuple` with `V`, `I_inst`, `I_peak`, `I_ss` (each a `voltages x channels`
+  matrix), the raw per-step `times`/`traces`, the compiled `sys`, `channel_names`
+  (including `:neuron` for the summed current), and `V_hold`. `I_inst` is the
+  open-channel current the instant the step lands (a straight line for an
+  ohmic channel); `I_peak` is the largest excursion during the step (the
+  textbook curve for a transient current like Na+); `I_ss` is the current
+  once the gates have fully relaxed.
 """
 function iv_curve(channels::AbstractVector;
                   voltages = DEFAULT_VOLTAGES,
@@ -101,19 +96,19 @@ function iv_curve(channels::AbstractVector;
 
     voltages = collect(float.(voltages))
 
-    # 1. Build the clamp circuit: channels wired in parallel, no capacitor.
+
     sys = _build_clamp_circuit(channels; V_hold = V_hold, Ca_hold = Ca_hold)
 
-    # Symbolic handles: the parameter swept, and the currents measured.
+
     E_clamp       = sys.clamp.E
     channel_names = nameof.(channels)
     I_chs         = [getproperty(sys, name).i for name in channel_names]
-    I_total       = -sys.clamp.i               # sum of all channel currents
+    I_total       = -sys.clamp.i              
     all_I         = [I_chs; I_total]
     col_names     = [channel_names; :neuron]
     states        = unknowns(sys)
 
-    # 2. Hold phase (shared initial condition for every test voltage)
+
     prob_hold = ODEProblem(sys, [E_clamp => V_hold], (0.0, t_hold))
     sol_hold  = solve(prob_hold, solver; reltol = reltol, abstol = abstol)
     sol_hold.retcode == ReturnCode.Success || error(
@@ -121,7 +116,7 @@ function iv_curve(channels::AbstractVector;
         "Check the channels' gating functions at V = $V_hold mV.")
     u_settled = sol_hold.u[end]
 
-    # 3. Step phase: one clamp step per test voltage
+
     n    = length(voltages)
     n_ch = length(all_I)
     I_inst = zeros(n, n_ch)
@@ -163,7 +158,7 @@ function iv_curve(channels::AbstractVector;
         traces[k] = trace_k
     end
 
-    # 4. Did the steps actually reach steady state?
+
     scale = maximum(abs, I_ss)
     if scale > 0
         drifting = findall(k -> maximum(abs.(I_ss[k, :] .- I_late[k, :])) > 0.01 * scale,
@@ -179,17 +174,14 @@ function iv_curve(channels::AbstractVector;
             channel_names = col_names, V_hold = V_hold)
 end
 
+
 """
-    plot_iv(res; which = :I_ss)
+    plot_iv(res; which=:I_ss)
 
-Plot the I-V curves returned by [`iv_curve`](@ref).
-
-For a single channel (`res.channel_names` holding just one channel plus the
-duplicate `:neuron` column), all three relations -- instantaneous, peak,
-steady state -- are overlaid for that channel and `which` is ignored. For
-several channels, only `which` (one of `:I_inst`, `:I_peak`, `:I_ss`) is
-plotted, one line per channel, with the total "neuron" current overlaid in
-bold black.
+Plots the I-V relationship from an `iv_curve` result `res`. For a single
+channel, overlays its instantaneous, peak, and steady-state currents. For a
+group of channels, plots the `which` current (`:I_inst`, `:I_peak`, or
+`:I_ss`) per channel, alongside the total `:neuron` current in bold black.
 """
 function plot_iv(res; which = :I_ss)
     chs = findall(!=(:neuron), res.channel_names)
@@ -221,42 +213,32 @@ function plot_iv(res; which = :I_ss)
     return plt
 end
 
+
 """
-    iv_curve_continuation(channels::AbstractVector; voltages, V_hold, t_hold, Ca_hold, solver, reltol, abstol, ds, dsmax)
+    iv_curve_continuation(channels; voltages=DEFAULT_VOLTAGES, V_hold=-80.0, t_hold=500.0, Ca_hold=0.05, solver=Rosenbrock23(), reltol=1e-8, abstol=1e-8, ds=1.0, dsmax=2.0)
 
-Compute the steady-state I-V curve of one or more voltage-clamped ion
-`channels` by numerical continuation (BifurcationKit.jl via MTK's
-`BifurcationProblem`), rather than by forward-simulating a step at every test
-voltage like [`iv_curve`](@ref) does. This traces `I_ss` as an equilibrium
-branch of the clamp circuit directly, which is both faster and more accurate
-very close to removable singularities in the gating rate functions (e.g.
-classic HH `alpha_m` at v = -40) than integrating through them at loose
-tolerance. Pass a single-element vector to study one channel on its own,
-e.g. `iv_curve_continuation([na])`.
+Like `iv_curve`, but traces the *steady-state* I-V curve via numerical
+continuation (`BifurcationKit`), treating the clamp voltage as the
+bifurcation parameter, instead of simulating a fixed step at each voltage.
+This finds the true steady state at every voltage -- including unstable
+branches a forward ODE simulation would never settle onto -- and reports
+each point's stability.
 
-Same clamp circuit as `iv_curve` (built by [`_build_clamp_circuit`](@ref)):
-`channels` are wired in parallel with a `FixedReversal` clamp holding voltage
-at `V_hold` (no membrane capacitor). The continuation is seeded from a real
-steady state -- the gates are simulated to equilibrium at `V_hold` (same
-hold-then-settle pattern as `iv_curve`), then that state is continued in the
-clamp voltage `E` across the full span of `voltages`, in both directions
-(`bothside = true`, since `V_hold` sits in the interior of the range).
+Needs at least one differential gating variable once the clamp circuit is
+compiled; a gateless channel's I_ss is a straight line, so use `iv_curve`
+instead in that case.
 
-Requires `channels` to compile down to at least one differential unknown
-(i.e. at least one gate) between them. Gateless channels only (e.g. a plain
-leak) have no continuation state to track -- their `I_ss` is a straight line
-obtainable directly from `i ~ g*(v - E_rev)`, so use [`iv_curve`](@ref) for
-that case.
+# Arguments
+- `channels`: A vector of channel systems to clamp (needs >= 1 gate between them).
+- `voltages`: The voltage range to continue over (mV); its extrema set `p_min`/`p_max`.
+- `V_hold`, `t_hold`, `Ca_hold`: As in `iv_curve`, used to find the starting
+  steady state at `V_hold` before continuation begins.
+- `solver`, `reltol`, `abstol`: Passed through to the holding-phase `solve`.
+- `ds`, `dsmax`: Initial and maximum continuation step size, passed to `ContinuationPar`.
 
-Returns a NamedTuple with fields `V`, `I_ss`, `stable` (a `BitMatrix`, from
-BifurcationKit's per-point unstable-eigenvalue count), the compiled system
-`sys`, and `channel_names`. `I_ss` and `stable` are
-`length(voltages) x (length(channels)+1)` matrices -- one column per channel
-(in `channels` order) plus a final "neuron" column holding the total clamp
-current -- `channel_names` lists the corresponding column names, and
-`branches` is a vector of the per-column `ContResult`s. Sorted by `V`
-(continuation runs in both directions from `V_hold`, so branch order isn't
-guaranteed).
+# Returns
+- A `NamedTuple` with `V`, `I_ss`, `stable` (all sorted by `V`), the compiled
+  `sys`, the raw per-channel `branches` from `BifurcationKit`, and `channel_names`.
 """
 function iv_curve_continuation(channels::AbstractVector;
                   voltages = DEFAULT_VOLTAGES,
@@ -272,7 +254,7 @@ function iv_curve_continuation(channels::AbstractVector;
     voltages = collect(float.(voltages))
     p_min, p_max = extrema(voltages)
 
-    # 1. Build the clamp circuit (same as iv_curve).
+
     sys = _build_clamp_circuit(channels; V_hold = V_hold, Ca_hold = Ca_hold)
 
     E_clamp = sys.clamp.E
@@ -287,8 +269,7 @@ function iv_curve_continuation(channels::AbstractVector;
     channel_names = nameof.(channels)
     I_chs         = [getproperty(sys, name).i for name in channel_names]
 
-    # 2. Seed continuation from a real steady state: hold at V_hold and
-    # settle, exactly like iv_curve's hold phase.
+
     prob_hold = ODEProblem(sys, [E_clamp => V_hold], (0.0, t_hold))
     sol_hold  = solve(prob_hold, solver; reltol = reltol, abstol = abstol)
     sol_hold.retcode == ReturnCode.Success || error(
@@ -296,8 +277,7 @@ function iv_curve_continuation(channels::AbstractVector;
         "Check the channels' gating functions at V = $V_hold mV.")
     u0_guess = sol_hold.u[end]
 
-    # BifurcationProblem needs a value for every parameter, not just the
-    # bifurcation parameter -- take the rest from their compiled defaults.
+
     ps = filter(!isequal(E_clamp), parameters(sys))
     p_start = [ps .=> getdefault.(ps); E_clamp => V_hold]
 
@@ -307,17 +287,13 @@ function iv_curve_continuation(channels::AbstractVector;
         detect_bifurcation = 1, nev = length(states),
         max_steps = 2000)
 
-    # 3. One continuation run per current of interest. The branch geometry
-    # (voltage grid, stability) is set by the underlying dynamics alone, not
-    # by which observable gets recorded as `plot_var`, so the per-channel
-    # and total runs land on exactly the same voltage grid.
     run_branch(plot_var) = continuation(
         BifurcationProblem(sys, states .=> u0_guess, p_start, E_clamp;
                             plot_var = plot_var, jac = false),
         PALC(), opts_br; bothside = true)
 
     branches  = [run_branch(I_ch) for I_ch in I_chs]
-    br_clamp  = run_branch(sys.clamp.i)   # total = -clamp.i
+    br_clamp  = run_branch(sys.clamp.i)   
 
     n    = length(branches[1].branch)
     n_ch = length(channels) + 1
@@ -338,9 +314,11 @@ function iv_curve_continuation(channels::AbstractVector;
 end
 
 
-# Draws one V/I branch as alternating solid/dashed segments (solid where
-# `stable`), only labelling the first segment so a channel gets one legend
-# entry no matter how many stability switches its branch has.
+"""
+Internal helper that plots one continuation branch `(V, I)`, switching
+linestyle between solid (stable) and dashed (unstable) at each `stable`
+transition so bifurcations are visible directly on the curve.
+"""
 function _plot_branch!(plt, V, I, stable; c, lw, label)
     i = firstindex(V)
     first_seg = true
@@ -358,15 +336,13 @@ function _plot_branch!(plt, V, I, stable; c, lw, label)
     return plt
 end
 
+
 """
     plot_iv_continuation(res)
 
-Plot the `I_ss` branch(es) returned by [`iv_curve_continuation`](@ref): solid
-where `stable`, dashed otherwise.
-
-For a single channel, that one branch is drawn without a legend. For several
-channels, each branch is drawn in its own color with a legend, and the total
-"neuron" branch is overlaid in bold black.
+Plots the I-V relationship from an `iv_curve_continuation` result `res`,
+using `_plot_branch!` so each branch switches from solid to dashed wherever
+it goes unstable. Same single-channel-vs-group layout as `plot_iv`.
 """
 function plot_iv_continuation(res)
     chs    = findall(!=(:neuron), res.channel_names)
@@ -391,6 +367,10 @@ function plot_iv_continuation(res)
 end
 
 
+# ==========================================
+# Demos
+# ==========================================
+
 const HH = HodgkinHuxley
 
 function demo()
@@ -400,14 +380,14 @@ function demo()
     V_hold = -40.5
     na_res   = iv_curve([na], V_hold=V_hold)
     k_res   = iv_curve([k], V_hold=V_hold)
-    # leak_res = iv_curve([leak], V_hold=V_hold)
 
-    # return plot(plot_iv(na_res), plot_iv(k_res), plot_iv(leak_res);
     return plot(plot_iv(na_res), plot_iv(k_res),;
                 layout = (1, 3), size = (1000, 420), margin=20px)
 end
 
 function demo_calcium()
+    # Made-up (non-textbook) activation/inactivation curves, just to exercise
+    # CaVChannel/KCaChannel's Ca2+-dependent E_rev and gating through iv_curve.
     CaV_m_inf(v) = 1.0 ./ (1.0 .+ exp.(-(v .+ 20.0) ./ 5.0))
     CaV_tau_m(v) = 5.0 .+ 10.0 ./ (1.0 .+ exp.((v .+ 20.0) ./ 10.0))
     cav_gates = [GateSpec(:mCaV, 3, 0.0, InfTau(CaV_m_inf, CaV_tau_m))]
@@ -416,9 +396,6 @@ function demo_calcium()
     KCa_tau_m(v) = 20.0
     kca_gates = [GateSpec(:mKCa, 4, 0.0, InfTauCa(KCa_m_inf, KCa_tau_m))]
 
-    # CaVChannel derives E_rev from the Nernst equation using ca_port.Ca, and
-    # KCaChannel's gate itself depends on ca_port.Ca -- iv_curve clamps that
-    # to Ca_hold for both, since neither is wired to a CalciumPool here.
     @named cav = CaVChannel(g = 2.0, gates = cav_gates, Ca_out = 3000.0,
                             nernst_factor = 13.0, conversion_factor = 0.047)
     @named kca = KCaChannel(g = 5.0, E_rev = -80.0, gates = kca_gates)
