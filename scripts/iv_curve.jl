@@ -181,7 +181,8 @@ end
 Plots the I-V relationship from an `iv_curve` result `res`. For a single
 channel, overlays its instantaneous, peak, and steady-state currents. For a
 group of channels, plots the `which` current (`:I_inst`, `:I_peak`, or
-`:I_ss`) per channel, alongside the total `:neuron` current in bold black.
+`:I_ss`) per channel, alongside the total `:neuron` current as a dashed,
+semi-transparent black line.
 """
 function plot_iv(res; which = :I_ss)
     chs = findall(!=(:neuron), res.channel_names)
@@ -191,7 +192,7 @@ function plot_iv(res; which = :I_ss)
         plt = plot(res.V, res.I_ss[:, c];
                    lw = 2, label = "steady state",
                    xlabel = "Clamp voltage (mV)",
-                   ylabel = "Current (outward positive, µA)",
+                   ylabel = "Current density (outward positive, µA/cm²)",
                    title  = "I-V: $(res.channel_names[c])",
                    legend = :topleft)
         plot!(plt, res.V, res.I_peak[:, c]; lw = 2, ls = :dash, label = "peak")
@@ -199,7 +200,7 @@ function plot_iv(res; which = :I_ss)
     else
         data = getproperty(res, which)
         plt = plot(xlabel = "Clamp voltage (mV)",
-                   ylabel = "Current (outward positive, µA)",
+                   ylabel = "Current density (outward positive, µA/cm²)",
                    title  = "I-V by channel ($(which))",
                    legend = :topleft)
         for c in chs
@@ -207,7 +208,7 @@ function plot_iv(res; which = :I_ss)
         end
         neuron_col = findfirst(==(:neuron), res.channel_names)
         plot!(plt, res.V, data[:, neuron_col];
-              lw = 3, c = :black, label = "neuron (total)")
+              lw = 1, ls = :dash, alpha = 0.6, c = :black, label = "neuron (total)")
     end
     hline!(plt, [0.0]; c = :black, lw = 1, label = false)
     return plt
@@ -317,9 +318,11 @@ end
 """
 Internal helper that plots one continuation branch `(V, I)`, switching
 linestyle between solid (stable) and dashed (unstable) at each `stable`
-transition so bifurcations are visible directly on the curve.
+transition so bifurcations are visible directly on the curve. Pass
+`force_dash = true` to always draw dashed (e.g. for the total `:neuron`
+trace, where stability shading would otherwise be lost under `alpha`).
 """
-function _plot_branch!(plt, V, I, stable; c, lw, label)
+function _plot_branch!(plt, V, I, stable; c, lw, label, alpha = 1.0, force_dash = false)
     i = firstindex(V)
     first_seg = true
     while i <= lastindex(V)
@@ -327,8 +330,8 @@ function _plot_branch!(plt, V, I, stable; c, lw, label)
         while j < lastindex(V) && stable[j+1] == stable[i]
             j += 1
         end
-        ls = stable[i] ? :solid : :dash
-        plot!(plt, V[i:j], I[i:j]; lw = lw, ls = ls, c = c,
+        ls = force_dash ? :dash : (stable[i] ? :solid : :dash)
+        plot!(plt, V[i:j], I[i:j]; lw = lw, ls = ls, c = c, alpha = alpha,
               label = first_seg ? label : false)
         first_seg = false
         i = j + 1
@@ -349,7 +352,7 @@ function plot_iv_continuation(res)
     single = length(chs) == 1
 
     plt = plot(xlabel = "Clamp voltage (mV)",
-               ylabel = "Current (outward positive, µA)",
+               ylabel = "Current density (outward positive, µA/cm²)",
                title  = single ? "I-V (continuation): $(res.channel_names[only(chs)])" :
                                   "I-V by channel (continuation)",
                legend = single ? false : :topleft)
@@ -360,7 +363,8 @@ function plot_iv_continuation(res)
     end
     neuron_col = findfirst(==(:neuron), res.channel_names)
     _plot_branch!(plt, res.V, res.I_ss[:, neuron_col], res.stable[:, neuron_col];
-                  c = single ? 1 : :black, lw = single ? 2 : 3, label = "neuron (total)")
+                  c = single ? 1 : :black, lw = single ? 2 : 1, label = "neuron (total)",
+                  alpha = 0.6, force_dash = true)
 
     hline!(plt, [0.0]; c = :black, lw = 1, label = false)
     return plt
@@ -377,7 +381,7 @@ function demo()
     @named na   = HH.SodiumChannel()
     @named k    = HH.PotassiumChannel()
     @named leak = HH.LeakChannel()
-    V_hold = -40.5
+    V_hold = -65.0
     na_res   = iv_curve([na], V_hold=V_hold)
     k_res   = iv_curve([k], V_hold=V_hold)
 
@@ -412,7 +416,7 @@ function demo_group()
     @named k    = HH.PotassiumChannel()
     @named leak = HH.LeakChannel()
 
-    res = iv_curve([na, k, leak])
+    res = iv_curve([na, k, leak], V_hold = -65.0)
 
     return plot(plot_iv(res, which = :I_ss),
                 plot_iv(res, which = :I_peak);

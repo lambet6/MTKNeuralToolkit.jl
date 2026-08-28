@@ -4,6 +4,7 @@
 module Currentscape
 
 using Plots
+using Printf: @sprintf
 
 export channel_currents, plot_currentscape, demo, demo_liu
 
@@ -47,12 +48,18 @@ end
 
 
 """
-    plot_currentscape(sol, currents, labels; V=nothing, t=nothing, colors=palette(:tab10), kwargs...)
+    plot_currentscape(sol, currents, labels; V=nothing, t=nothing, colors=palette(:tab10),
+                      units="[µA]", kwargs...)
 
-Plots a "currentscape": at every timepoint, each channel's contribution to
-the total inward current and to the total outward current is stacked as a
-fraction (0-100%) of that total, so you can see which channels *dominate*
-the membrane current at each moment, independent of its absolute size.
+Plots a "currentscape" in the style of the python
+[currentscape](https://github.com/BlueBrain/Currentscape) package: at every
+timepoint, each channel's contribution to the total inward current and to
+the total outward current is stacked as a fraction (0-100%) of that total,
+so you can see which channels *dominate* the membrane current at each
+moment, independent of its absolute size. Flanking the percentage stack are
+two black, log-scale area panels showing the *absolute* total outward
+(above) and total inward (below) current, so the moments of largest current
+flow are visible too.
 
 # Arguments
 - `sol`: An `ODESolution` from a compiled network.
@@ -61,13 +68,16 @@ the membrane current at each moment, independent of its absolute size.
 - `V`: Optional symbolic voltage variable, plotted in a panel above the currentscape.
 - `t`: Optional time grid to sample `sol` on (defaults to 500 points over `sol`'s span).
 - `colors`: A color palette, one color per channel.
+- `units`: Unit label for the total-current panels (toolkit currents default to `"[µA]"`,
+  see `iv_curve.jl`).
 
 # Returns
-- A `Plots.Plot` combining the voltage panel (if any), the currentscape, and a legend.
+- A `Plots.Plot` combining the voltage panel (if any), the total outward-current panel,
+  the currentscape, the total inward-current panel, and a legend.
 """
 function plot_currentscape(sol, currents, labels;
                            V = nothing, t = nothing,
-                           colors = palette(:tab10), kwargs...)
+                           colors = palette(:tab10), units = "[µA/cm²]", kwargs...)
     ts = t === nothing ? range(sol.t[1], sol.t[end]; length = 500) : t
 
     I = reduce(hcat, [sol(ts; idxs = c).u for c in currents])
@@ -79,32 +89,47 @@ function plot_currentscape(sol, currents, labels;
     inward_frac  = inward  ./ max.(sum(inward;  dims = 2), eps())
     outward_frac = outward ./ max.(sum(outward; dims = 2), eps())
 
+    inward_sum  = vec(sum(inward;  dims = 2))
+    outward_sum = vec(sum(outward; dims = 2))
+    sum_ylim, sum_ticks = autoscale_current_ticks(outward_sum, inward_sum)
+
     panels = []
 
     if V !== nothing
         Vt = sol(ts; idxs = V).u
         push!(panels, plot(ts, Vt; ylabel = "V (mV)", legend = false,
-                           lw = 1.5, c = :black))
+                           lw = 1.5, c = :black, grid = false))
     end
 
+    push!(panels, current_sum_panel(ts, outward_sum, sum_ylim, sum_ticks;
+                                    flip = false, units = units))
+
+    legend_row = length(panels) + 1
     push!(panels, currentscape_panel(ts, inward_frac, outward_frac, labels,
-                                     colors; legend = false))
+                                     colors; legend = false, grid = false))
+
+    push!(panels, current_sum_panel(ts, inward_sum, sum_ylim, sum_ticks;
+                                    flip = true, units = "-" * units))
 
     n = length(panels)
 
     xl = extrema(ts)
     for (i, p) in enumerate(panels)
-        plot!(p; xlabel = i == n ? "Time (ms)" : "", xlims = xl,
-              left_margin = 6Plots.mm)
+        is_last = i == n
+        plot!(p; xlabel = is_last ? "Time (ms)" : "", xlims = xl,
+              xaxis = is_last, left_margin = 6Plots.mm)
     end
 
     cells = Any[]
     for (i, p) in enumerate(panels)
         push!(cells, p)
-        push!(cells, i == n ? legend_swatch(labels, colors) : blank_panel())
+        push!(cells, i == legend_row ? legend_swatch(labels, colors) : blank_panel())
     end
 
-    l = grid(n, 2; widths = [0.86, 0.14])
+    # Row heights, in the same 2:1:4:1 (V:outward:currentscape:inward) proportions
+    # as the python currentscape package's `get_rows_tot`/`create_figure`.
+    heights = V === nothing ? [1 / 6, 4 / 6, 1 / 6] : [2 / 8, 1 / 8, 4 / 8, 1 / 8]
+    l = grid(n, 2; widths = [0.86, 0.14], heights = heights)
 
     return plot(cells...; layout = l, kwargs...)
 end
@@ -132,6 +157,61 @@ Internal helper: an empty, frameless panel used as a spacer in the plot grid.
 function blank_panel()
     return plot(; framestyle = :none, legend = false, grid = false,
                ticks = nothing)
+end
+
+"""
+Internal helper: rounds `n` down to its leading significant digit
+(e.g. 723 -> 700, 0.0456 -> 0.04), matching the tick/ylim heuristic used by
+the python `currentscape` package's `round_down_sig_digit`.
+"""
+function round_down_sig_digit(n)
+    n <= 0 && return 0.0
+    mag = 10.0^floor(log10(n))
+    return mag * floor(n / mag)
+end
+
+"""
+Internal helper: picks a log-scale ylim and three decade-spaced ticks for
+the total inward/outward current panels from the largest current magnitude
+seen across `pos_sum` and `neg_sum`, mirroring the python `currentscape`
+package's `autoscale_ticks_and_ylim`.
+"""
+function autoscale_current_ticks(pos_sum, neg_sum)
+    maxi = max(maximum(pos_sum), maximum(neg_sum), eps())
+    ylim = (5.0 * maxi / 1e7, 5.0 * maxi)
+    sig = round_down_sig_digit(maxi)
+    ticks = [sig * 1e-5, sig * 1e-3, sig * 1e-1]
+    return ylim, ticks
+end
+
+"""
+Internal helper: formats a tick value the way python's `"%g"` formatter
+would (e.g. `400`, `4`, `0.04`), trimming trailing zeros.
+"""
+function format_tick(x)
+    s = @sprintf("%g", x)
+    return s
+end
+
+"""
+Internal helper: draws one of the black, log-scale total-current panels
+(outward above the currentscape, inward below), matching the style of the
+python `currentscape` package's `plot_sum`. `flip=true` mirrors the y-axis
+so that small values sit next to the currentscape stack and large values
+sit away from it (used for the inward/bottom panel).
+"""
+function current_sum_panel(ts, curr_sum, ylim, ticks; flip = false, units = "[µA/cm²]", kwargs...)
+    clamped = max.(curr_sum, ylim[1])
+
+    plt = plot(; yscale = :log10, ylims = ylim, yflip = flip,
+               ylabel = units, legend = false, grid = false,
+               yticks = (ticks, format_tick.(ticks)), kwargs...)
+
+    hline!(plt, ticks; c = :black, ls = :dot, lw = 1, label = "")
+    plot!(plt, ts, clamped; fillrange = ylim[1], c = :black, lw = 0,
+          fillalpha = 1, label = "")
+
+    return plt
 end
 
 """
@@ -198,7 +278,7 @@ function demo()
 
     # === Compile and simulate ===
     sys  = mtkcompile(net.sys)
-    prob = ODEProblem(sys, [], (0.0, 50.0))
+    prob = ODEProblem(sys, [], (0.0, 25.0))
     sol  = solve(prob, Rosenbrock23(); reltol = 1e-6, abstol = 1e-6)
 
     # === Extract channel currents and plot the currentscape ===
