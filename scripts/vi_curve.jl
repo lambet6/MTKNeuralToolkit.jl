@@ -132,10 +132,6 @@ function _plot_branch!(plt, x, y, stable; c, lw, label)
     return plt
 end
 
-# Marker and human-readable name per BifurcationKit special-point type. `:bp` and
-# `:fold` both show up at a turning point of the branch (a saddle-node); which one
-# gets recorded depends on whether the eigenvalue crossing or the parameter
-# reversal was spotted first, so both are drawn the same way.
 const _POINT_STYLE = Dict(
     :hopf => (:circle,  :red,   "Hopf"),
     :fold => (:diamond, :blue,  "fold (saddle-node)"),
@@ -173,7 +169,6 @@ end
 # ==========================================
 
 const HH = HodgkinHuxley
-
 function demo()
     @named soma_cap = Capacitor(C = 1.0)
     @named na_ch    = HH.SodiumChannel()

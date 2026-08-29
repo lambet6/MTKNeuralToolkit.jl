@@ -218,7 +218,7 @@ function demo()
     @named na   = HH.SodiumChannel()
     @named k    = HH.PotassiumChannel()
     @named leak = HH.LeakChannel()
-    V_hold = -65.0
+    V_hold = -30.0
     na_res   = iv_curve([na], V_hold=V_hold)
     k_res   = iv_curve([k], V_hold=V_hold)
 
