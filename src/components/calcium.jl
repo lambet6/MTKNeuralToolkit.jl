@@ -22,9 +22,8 @@ any `ca_port` connected to it (satisfying the connector's flow/potential
 equations) without needing a full `CalciumPool`.
  
 Useful for voltage-clamp protocols (see `iv_curve`) where you want to record
-a `CaVChannel`/`KCaChannel`'s current-voltage relationship at a fixed,
-buffered intracellular Ca2+ level -- the same role that EGTA/BAPTA chelation
-plays in a real patch pipette.
+a `CaVChannel`/`KCaChannel`'s current-voltage relationship at a fixed
+intracellular Ca2+ level
 """
 @component function FixedCalcium(; name, Ca=0.05, topology=Scalar())
     @named port = CaPort(topology=topology)
