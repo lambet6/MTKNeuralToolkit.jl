@@ -49,17 +49,14 @@ end
 
 """
     plot_currentscape(sol, currents, labels; V=nothing, t=nothing, colors=palette(:tab10),
-                      units="[µA]", kwargs...)
+                      units="[µA/cm²]", kwargs...)
 
-Plots a "currentscape" in the style of the python
-[currentscape](https://github.com/BlueBrain/Currentscape) package: at every
-timepoint, each channel's contribution to the total inward current and to
-the total outward current is stacked as a fraction (0-100%) of that total,
-so you can see which channels *dominate* the membrane current at each
-moment, independent of its absolute size. Flanking the percentage stack are
-two black, log-scale area panels showing the *absolute* total outward
-(above) and total inward (below) current, so the moments of largest current
-flow are visible too.
+Plots a "currentscape": at every timepoint, each channel's contribution to
+the total inward current and to the total outward current is stacked as a
+fraction (0-100%) of that total, so you can see which channels *dominate*
+the membrane current at each moment, independent of its absolute size. 
+Above and below are two black, log-scale area panels showing the *absolute* 
+total outward (above) and total inward (below) current.
 
 # Arguments
 - `sol`: An `ODESolution` from a compiled network.
@@ -68,8 +65,7 @@ flow are visible too.
 - `V`: Optional symbolic voltage variable, plotted in a panel above the currentscape.
 - `t`: Optional time grid to sample `sol` on (defaults to 500 points over `sol`'s span).
 - `colors`: A color palette, one color per channel.
-- `units`: Unit label for the total-current panels (toolkit currents default to `"[µA]"`,
-  see `iv_curve.jl`).
+- `units`: Unit label for the total-current panels.
 
 # Returns
 - A `Plots.Plot` combining the voltage panel (if any), the total outward-current panel,
@@ -83,7 +79,7 @@ function plot_currentscape(sol, currents, labels;
     I = reduce(hcat, [sol(ts; idxs = c).u for c in currents])
 
     # Channels follow toolkit's convention, so a channel current
-    #  is inward when negative, outward when positive.
+    # is inward when negative, outward when positive.
     inward  = max.(-I, 0.0)
     outward = max.(I, 0.0)
     inward_frac  = inward  ./ max.(sum(inward;  dims = 2), eps())
@@ -126,8 +122,6 @@ function plot_currentscape(sol, currents, labels;
         push!(cells, i == legend_row ? legend_swatch(labels, colors) : blank_panel())
     end
 
-    # Row heights, in the same 2:1:4:1 (V:outward:currentscape:inward) proportions
-    # as the python currentscape package's `get_rows_tot`/`create_figure`.
     heights = V === nothing ? [1 / 6, 4 / 6, 1 / 6] : [2 / 8, 1 / 8, 4 / 8, 1 / 8]
     l = grid(n, 2; widths = [0.86, 0.14], heights = heights)
 
@@ -262,23 +256,19 @@ using ModelingToolkit: mtkcompile, @named
 using OrdinaryDiffEq
 
 function demo()
-    # === Build a standard HH compartment ===
-    top = Scalar()
-
-    @named cap  = Capacitor(topology = top, C = 1.0)
+    @named cap  = Capacitor()
     @named na   = HodgkinHuxley.SodiumChannel()
     @named k    = HodgkinHuxley.PotassiumChannel()
     @named leak = HodgkinHuxley.LeakChannel()
     channels = [na, k, leak]
 
-    soma = build_compartment(cap, channels; name = :soma, V_init = -65.0,
-                             topology = top)
+    soma = build_compartment(cap, channels; name = :soma, V_init = -65.0)
     net  = build_acausal_network([soma]; drivers = [(1, 10.0)],
                                  name = :currentscape_demo)
 
     # === Compile and simulate ===
     sys  = mtkcompile(net.sys)
-    prob = ODEProblem(sys, [], (0.0, 25.0))
+    prob = ODEProblem(sys, [], (0.0, 75.0))
     sol  = solve(prob, Rosenbrock23(); reltol = 1e-6, abstol = 1e-6)
 
     # === Extract channel currents and plot the currentscape ===
@@ -290,9 +280,6 @@ end
 
 
 using MTKNeuralToolkit: LiuCalciumNeuron
-
-# Same as demo(), but for the prebuilt Liu et al. crustacean stomatogastric
-# neuron model (8 channels), to show a currentscape on a busier cell.
 function demo_liu()
     comp = LiuCalciumNeuron.build_liu_neuron(name = :soma)
     net  = build_acausal_network([comp]; drivers = [(1, 0.0)],
@@ -303,7 +290,8 @@ function demo_liu()
     sol  = solve(prob, Rosenbrock23(); reltol = 1e-6, abstol = 1e-6)
 
     channel_names = [:na_ch, :cas_ch, :cat_ch, :ih_ch, :ka_ch, :kca_ch, :kdr_ch, :leak]
-    labels         = ["na", "cas", "cat", "ih", "ka", "kca", "kdr", "leak"]
+    # labels used for legend in the currentscape plot
+    labels         = ["na", "cas", "cat", "ih", "ka", "kca", "kdr", "leak"]                 
     currents, labels = channel_currents(sys, :soma, channel_names; labels = labels)
     V = sys.soma.cap.v
 
