@@ -2,7 +2,6 @@
 # Figure 2.2: Hodgkin-Huxley steady-state gating curves and
 # time constants, as implemented in MTKNeuralToolkit.jl.
 #
-# Run with:  julia --project hh_gating_curves.jl
 # Output:    figures/hh_gating_curves.pdf
 # ============================================================
 
