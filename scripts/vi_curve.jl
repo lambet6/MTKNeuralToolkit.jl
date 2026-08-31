@@ -146,7 +146,7 @@ membrane voltage on y, solid where the equilibrium is stable and dashed where it
 is unstable. Detected bifurcations are marked, one legend entry per type.
 """
 function plot_vi(res; title = "V-I curve (current clamp)")
-    plt = plot(xlabel = "Applied current (µA/cm²)",
+    plt = plot(xlabel = "Applied current (µA)",
                ylabel = "Steady-state voltage (mV)",
                title  = title,
                legend = :bottomright)
@@ -180,7 +180,7 @@ function demo()
 
     res = vi_curve(soma; currents = -20.0:200.0, I_start = -20.0)
     for p in res.points
-        println("  $(p.type) at I_app = $(round(p.I, digits=3)) µA/cm², " *
+        println("  $(p.type) at I_app = $(round(p.I, digits=3)) µA, " *
                 "V = $(round(p.V, digits=3)) mV")
     end
     return plot_vi(res; title = "Hodgkin-Huxley V-I curve")

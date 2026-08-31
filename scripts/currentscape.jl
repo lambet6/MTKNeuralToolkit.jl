@@ -49,7 +49,7 @@ end
 
 """
     plot_currentscape(sol, currents, labels; V=nothing, colors=palette(:tab10),
-                      units="[µA/cm²]", kwargs...)
+                      units="[µA]", kwargs...)
 
 Plots a "currentscape": at every timepoint, each channel's contribution to
 the total inward current and to the total outward current is stacked as a
@@ -72,7 +72,7 @@ total outward (above) and total inward (below) current.
 """
 function plot_currentscape(sol, currents, labels;
                            V = nothing,
-                           colors = palette(:tab10), units = "[µA/cm²]", kwargs...)
+                           colors = palette(:tab10), units = "[µA]", kwargs...)
     ts = sol.t
 
     I = reduce(hcat, [sol[c] for c in currents])
@@ -193,7 +193,7 @@ python `currentscape` package's `plot_sum`. `flip=true` mirrors the y-axis
 so that small values sit next to the currentscape stack and large values
 sit away from it (used for the inward/bottom panel).
 """
-function current_sum_panel(ts, curr_sum, ylim, ticks; flip = false, units = "[µA/cm²]", kwargs...)
+function current_sum_panel(ts, curr_sum, ylim, ticks; flip = false, units = "[µA]", kwargs...)
     clamped = max.(curr_sum, ylim[1])
 
     plt = plot(; yscale = :log10, ylims = ylim, yflip = flip,

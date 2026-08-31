@@ -184,7 +184,7 @@ function plot_iv(res; which = :I_ss)
         plt = plot(res.V, res.I_ss[:, c];
                    lw = 2, label = "steady state",
                    xlabel = "Clamp voltage (mV)",
-                   ylabel = "Current density (outward positive, µA/cm²)",
+                   ylabel = "Current density (outward positive, µA)",
                    title  = "I-V: $(res.channel_names[c])",
                    legend = :topleft)
         plot!(plt, res.V, res.I_peak[:, c]; lw = 2, ls = :dash, label = "peak")
@@ -192,7 +192,7 @@ function plot_iv(res; which = :I_ss)
     else
         data = getproperty(res, which)
         plt = plot(xlabel = "Clamp voltage (mV)",
-                   ylabel = "Current density (outward positive, µA/cm²)",
+                   ylabel = "Current density (outward positive, µA)",
                    title  = "I-V by channel ($(which))",
                    legend = :topleft)
         for c in chs
