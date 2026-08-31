@@ -24,3 +24,6 @@ Manifest*.toml
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Generated figures
+/figures/
