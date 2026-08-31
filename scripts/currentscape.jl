@@ -48,7 +48,7 @@ end
 
 
 """
-    plot_currentscape(sol, currents, labels; V=nothing, t=nothing, colors=palette(:tab10),
+    plot_currentscape(sol, currents, labels; V=nothing, colors=palette(:tab10),
                       units="[µA/cm²]", kwargs...)
 
 Plots a "currentscape": at every timepoint, each channel's contribution to
@@ -63,7 +63,6 @@ total outward (above) and total inward (below) current.
 - `currents`: Symbolic current variables, e.g. from `channel_currents`.
 - `labels`: `String` names for `currents`, used in the legend.
 - `V`: Optional symbolic voltage variable, plotted in a panel above the currentscape.
-- `t`: Optional time grid to sample `sol` on (defaults to 500 points over `sol`'s span).
 - `colors`: A color palette, one color per channel.
 - `units`: Unit label for the total-current panels.
 
@@ -72,11 +71,11 @@ total outward (above) and total inward (below) current.
   the currentscape, the total inward-current panel, and a legend.
 """
 function plot_currentscape(sol, currents, labels;
-                           V = nothing, t = nothing,
+                           V = nothing,
                            colors = palette(:tab10), units = "[µA/cm²]", kwargs...)
-    ts = t === nothing ? range(sol.t[1], sol.t[end]; length = 500) : t
+    ts = sol.t
 
-    I = reduce(hcat, [sol(ts; idxs = c).u for c in currents])
+    I = reduce(hcat, [sol[c] for c in currents])
 
     # Channels follow toolkit's convention, so a channel current
     # is inward when negative, outward when positive.
@@ -92,7 +91,7 @@ function plot_currentscape(sol, currents, labels;
     panels = []
 
     if V !== nothing
-        Vt = sol(ts; idxs = V).u
+        Vt = sol[V]
         push!(panels, plot(ts, Vt; ylabel = "V (mV)", legend = false,
                            lw = 1.5, c = :black, grid = false))
     end
