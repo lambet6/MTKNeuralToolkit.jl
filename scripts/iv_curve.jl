@@ -198,9 +198,11 @@ function plot_iv(res; which = :I_ss)
         for c in chs
             plot!(plt, res.V, data[:, c]; lw = 2, label = String(res.channel_names[c]))
         end
-        neuron_col = findfirst(==(:neuron), res.channel_names)
-        plot!(plt, res.V, data[:, neuron_col];
-              lw = 1, ls = :dash, alpha = 0.6, c = :black, label = "neuron (total)")
+        if which != :I_peak
+            neuron_col = findfirst(==(:neuron), res.channel_names)
+            plot!(plt, res.V, data[:, neuron_col];
+                lw = 1, ls = :dash, alpha = 0.6, c = :black, label = "neuron (total)")
+        end
     end
     hline!(plt, [0.0]; c = :black, lw = 1, label = false)
     return plt

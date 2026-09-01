@@ -180,8 +180,7 @@ labels = ["na", "k", "leak"]
 plt_c = plot_currentscape(sol, currents, labels; V = sys.soma.cs_cap.v,
                           size = (800, 700), dpi = 300,
                           plot_title = @sprintf(
-                              "(c) Currentscape at I_app = %.1f µA (%.1f µA above the Hopf at %.1f µA)",
-                              I_app, I_HOPF_MARGIN, hopf.I))
+                              "(c) Currentscape: I_app = %.1f µA", I_app))
 
 mkpath("figures")
 savefig(plt_ab, joinpath("figures", "hh_composite_iv_vi.pdf"))
