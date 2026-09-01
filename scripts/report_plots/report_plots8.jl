@@ -47,8 +47,15 @@ for p in res.points
             "V = $(round(p.V, digits=3)) mV")
 end
 
-plt = plot_vi(res; title = "Hodgkin-Huxley equilibrium branch")
-plot!(plt; grid = false, size = (760, 500), margin = 20px, dpi = 300)
+overview = plot_vi(res; title = "(a) Full equilibrium branch")
+plot!(overview; grid = false)
+
+onset = plot_vi(res; title = "(b) Onset of instability")
+plot!(onset; xlims = (0.0, 20.0), grid = false, legend = false)
+
+plt = plot(overview, onset;
+           layout = (2, 1), size = (760, 800),
+           margin = 20px, dpi = 300)
 
 mkpath("figures")
 savefig(plt, joinpath("figures", "hh_vi_curve.pdf"))

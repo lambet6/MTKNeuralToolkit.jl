@@ -27,28 +27,36 @@ const HH = HodgkinHuxley
 # alpha_m is 0/0 at v = -40 and alpha_n at v = -55; the half-mV grid
 # offset keeps the sweep clear of both removable singularities.
 const VOLTAGES = -99.5:1.0:60.5
-const V_HOLDS  = [-100.0, -80.0, -50.0]
-const COLOURS  = [:steelblue, :seagreen, :firebrick]
+const V_HOLDS = [-80.0, -65.0, -50.0]
+const COLOURS = [:steelblue, :seagreen, :firebrick]
 
 @named na = HH.SodiumChannel()
 
 results = [iv_curve([na]; voltages = VOLTAGES, V_hold = Vh) for Vh in V_HOLDS]
 
-plt = plot(; xlabel = "Clamp voltage (mV)",
-             ylabel = "Current (outward positive, µA)",
-             title  = "Sodium I-V vs holding potential",
-             xlims  = (-100.0, 60.0), grid = false, legend = :bottomleft,
-             size = (760, 500), margin = 20px, dpi = 300)
+peak_plt = plot(; xlabel = "Clamp voltage (mV)",
+                  ylabel = "Peak current (outward positive, µA)",
+                  title = "Peak sodium current",
+                  xlims = (-100.0, 60.0), grid = false, legend = :bottomleft)
+
+inst_plt = plot(; xlabel = "Clamp voltage (mV)",
+                  ylabel = "Instantaneous current (outward positive, µA)",
+                  title = "Instantaneous sodium current",
+                  xlims = (-100.0, 60.0), grid = false, legend = :bottomleft)
 
 for (res, Vh, col) in zip(results, V_HOLDS, COLOURS)
     c = findfirst(!=(:neuron), res.channel_names)
-    plot!(plt, res.V, res.I_peak[:, c];
-          lw = 2.5, c = col, label = "peak, hold $(Vh) mV")
-    plot!(plt, res.V, res.I_inst[:, c];
-          lw = 2, ls = :dash, c = col, label = "instantaneous, hold $(Vh) mV")
+    label = "hold $(Vh) mV"
+
+    plot!(peak_plt, res.V, res.I_peak[:, c]; lw = 2.5, c = col, label)
+    plot!(inst_plt, res.V, res.I_inst[:, c]; lw = 2.5, c = col, label)
 end
 
-hline!(plt, [0.0]; c = :black, lw = 1, label = false)
+hline!(peak_plt, [0.0]; c = :black, lw = 1, label = false)
+hline!(inst_plt, [0.0]; c = :black, lw = 1, label = false)
+
+plt = plot(peak_plt, inst_plt;
+           layout = (1, 2), size = (1_080, 450), margin = 20px, dpi = 300)
 
 mkpath("figures")
 savefig(plt, joinpath("figures", "na_iv_holds.pdf"))
