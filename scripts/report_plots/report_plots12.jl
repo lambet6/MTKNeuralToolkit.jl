@@ -11,14 +11,6 @@
 # driver current changes. The panels share an x-axis and y-limits so
 # the amplitudes are directly comparable.
 #
-# On each panel the equilibrium voltage V*(I_app) predicted by the
-# branch is drawn as a dotted line. It is *read off* the `vi_curve`
-# result by interpolating the continuation branch at that current
-# rather than hardcoded, which is what makes this figure a test of
-# Fig 5.8: in (a) and (c) the trace should converge onto the dotted
-# line (stable equilibrium), while in (b) it should oscillate around
-# it (unstable equilibrium, repetitive firing).
-#
 # Output:    figures/hh_voltage_regimes.pdf (and .png)
 # ============================================================
 

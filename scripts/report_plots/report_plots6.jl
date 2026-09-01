@@ -4,14 +4,6 @@
 # `iv_curve([na, k, leak]; V_hold = -65.0)` plotted through `plot_iv`
 # twice: peak current on the left, steady-state current on the right.
 #
-# The two panels answer different questions. The peak curve is taken
-# before the gates have relaxed, so it still carries the fast sodium
-# current: that is where the negative-slope region - the regenerative
-# stretch that makes a spike possible - shows up. The steady-state
-# curve is taken once every gate has settled, so the sodium current has
-# largely inactivated and what is left is the balance that sets the
-# resting potential. Neither panel alone tells the whole story, so both
-# are shown.
 #
 # Zero crossings of the total ("neuron") curve are marked in each panel;
 # they are the voltages at which the summed membrane current vanishes.
